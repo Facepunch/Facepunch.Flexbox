@@ -165,11 +165,11 @@ public class FlexElement : UIBehaviour
             }
         }
 
-        _contentWidth = Padding.left + (horizontal ? mainAxisSize : crossAxisSize) + Padding.right;
-        _contentHeight = Padding.top + (horizontal ? crossAxisSize : mainAxisSize) + Padding.bottom;
+        _contentWidth = horizontal ? mainAxisSize : crossAxisSize;
+        _contentHeight = horizontal ? crossAxisSize : mainAxisSize;
 
-        _contentMaxWidth = Padding.left + (horizontal ? mainAxisMaxSize : crossAxisMaxSize) + Padding.right;
-        _contentMaxHeight = Padding.top + (horizontal ? crossAxisMaxSize : mainAxisMaxSize) + Padding.bottom;
+        _contentMaxWidth = horizontal ? mainAxisMaxSize : crossAxisMaxSize;
+        _contentMaxHeight = horizontal ? crossAxisMaxSize : mainAxisMaxSize;
 
         if (IsAbsolute)
         {
@@ -178,8 +178,8 @@ public class FlexElement : UIBehaviour
         }
         else
         {
-            _preferredWidth = Mathf.Clamp(_contentWidth, _minWidth, _maxWidth);
-            _preferredHeight = Mathf.Clamp(_contentHeight, _minHeight, _maxHeight);
+            _preferredWidth = Mathf.Clamp(Padding.left + _contentWidth + Padding.right, _minWidth, _maxWidth);
+            _preferredHeight = Mathf.Clamp(Padding.top + _contentHeight + Padding.bottom, _minHeight, _maxHeight);
         }
 
         _growSum = growSum;
@@ -244,20 +244,21 @@ public class FlexElement : UIBehaviour
             var reversed = IsReversed;
             var stretchCross = AlignItems == FlexAlign.Stretch;
 
+            var innerWidth = width - Padding.left - Padding.right;
+            var innerHeight = height - Padding.top - Padding.bottom;
+
+            var growSum = _growSum;
             var growthAllowance = horizontal
-                ? Mathf.Max(0, width - _contentWidth)
-                : Mathf.Max(0, height - _contentHeight);
+                ? Mathf.Max(0, innerWidth - _contentWidth)
+                : Mathf.Max(0, innerHeight - _contentHeight);
 
             var actualContentWidth = _contentWidth;
             var actualContentHeight = _contentHeight;
-            if (_growSum > 0 && growthAllowance > 0)
+            if (growSum > 0 && growthAllowance > 0)
             {
-                if (horizontal) actualContentWidth = Mathf.Min(width, _contentMaxWidth);
-                else actualContentHeight = Mathf.Min(height, _contentMaxHeight);
+                if (horizontal) actualContentWidth = Mathf.Min(innerWidth, _contentMaxWidth);
+                else actualContentHeight = Mathf.Min(innerHeight, _contentMaxHeight);
             }
-
-            var innerWidth = width - Padding.left - Padding.right;
-            var innerHeight = height - Padding.top - Padding.bottom;
 
             var mainAxisOffset = GetMainAxisStart(horizontal, reversed);
             foreach (var child in Children(reversed))
@@ -271,9 +272,17 @@ public class FlexElement : UIBehaviour
 
                 if (growthAllowance > 0 && child.Grow > 0)
                 {
-                    var growAmount = ((float)child.Grow / _growSum) * growthAllowance;
-                    if (horizontal) childWidth += growAmount; // todo: do we need to clamp and reduce growth allowance accordingly?
-                    else childHeight += growAmount;
+                    if (horizontal) TakeGrowth(ref childWidth, child._maxWidth);
+                    else TakeGrowth(ref childHeight, child._maxHeight);
+
+                    void TakeGrowth(ref float value, float maxValue)
+                    {
+                        var growPotential = ((float)child.Grow / growSum) * growthAllowance;
+                        var growAmount = Mathf.Clamp(maxValue - value, 0, growPotential);
+                        value += growAmount;
+                        growthAllowance -= growAmount;
+                        growSum -= child.Grow;
+                    }
                 }
 
                 childWidth = Mathf.Clamp(childWidth, child._minWidth, child._maxWidth);
@@ -303,16 +312,16 @@ public class FlexElement : UIBehaviour
                 {
                     case FlexJustify.Start:
                         return isHorizontal
-                            ? (isReversed ? width - actualContentWidth + Padding.left : Padding.left)
-                            : -(isReversed ? height - actualContentHeight + Padding.top : Padding.top);
+                            ? (isReversed ? innerWidth - actualContentWidth + Padding.left : Padding.left)
+                            : -(isReversed ? innerHeight - actualContentHeight + Padding.top : Padding.top);
                     case FlexJustify.End:
                         return isHorizontal
-                            ? (isReversed ? Padding.left : width - actualContentWidth + Padding.left)
-                            : -(isReversed ? Padding.top : height - actualContentHeight + Padding.top);
+                            ? (isReversed ? Padding.left : innerWidth - actualContentWidth + Padding.left)
+                            : -(isReversed ? Padding.top : innerHeight - actualContentHeight + Padding.top);
                     case FlexJustify.Center:
                         return isHorizontal
-                            ? ((width - actualContentWidth) / 2) + Padding.left
-                            : -((height - actualContentHeight) / 2) - Padding.top;
+                            ? ((innerWidth - actualContentWidth) / 2) + Padding.left
+                            : -((innerHeight - actualContentHeight) / 2) - Padding.top;
                     default:
                         throw new NotSupportedException(JustifyContent.ToString());
                 }
@@ -329,12 +338,12 @@ public class FlexElement : UIBehaviour
                             : Padding.left;
                     case FlexAlign.End:
                         return isHorizontal
-                            ? -height + Padding.bottom + childHeight
-                            : width - Padding.right - childWidth;
+                            ? -innerHeight + Padding.bottom + childHeight
+                            : innerWidth - Padding.right - childWidth;
                     case FlexAlign.Center:
                         return isHorizontal
-                            ? -((height / 2) - (childHeight / 2))
-                            : (width / 2) - (childWidth / 2);
+                            ? -((innerHeight / 2) - (childHeight / 2) + Padding.top)
+                            : (innerWidth / 2) - (childWidth / 2) + Padding.left;
                     default:
                         throw new NotSupportedException(AlignItems.ToString());
                 }
