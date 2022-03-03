@@ -28,6 +28,10 @@ public class FlexElement : UIBehaviour
     private float _preferredWidth, _preferredHeight;
     private int _growSum;
 
+#if UNITY_EDITOR
+    private DrivenRectTransformTracker _drivenTracker = new DrivenRectTransformTracker();
+#endif
+
     private bool IsHorizontal => FlexDirection == FlexDirection.Row || FlexDirection == FlexDirection.RowReverse;
     private bool IsReversed => FlexDirection == FlexDirection.RowReverse || FlexDirection == FlexDirection.ColumnReverse;
 
@@ -237,6 +241,12 @@ public class FlexElement : UIBehaviour
             if (!IsAbsolute)
             {
                 var rt = (RectTransform)transform;
+
+#if UNITY_EDITOR
+                _drivenTracker.Clear();
+                _drivenTracker.Add(this, rt, DrivenTransformProperties.All);
+#endif
+
                 rt.sizeDelta = new Vector2(width, height);
             }
 
@@ -373,7 +383,14 @@ public class FlexElement : UIBehaviour
 
     protected override void OnEnable() => MarkDirty();
 
-    protected override void OnDisable() => MarkDirty();
+    protected override void OnDisable()
+    {
+        MarkDirty();
+
+#if UNITY_EDITOR
+        _drivenTracker.Clear();
+#endif
+    }
 
     protected override void OnRectTransformDimensionsChange() => MarkDirty();
 
