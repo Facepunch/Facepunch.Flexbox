@@ -1,44 +1,36 @@
-﻿using System.Collections;
+﻿using System;
+using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 
-internal struct FlexElementEnumerable : IEnumerable<FlexElement>
+internal struct FlexChildEnumerable : IEnumerable<IFlexNode>
 {
     private readonly FlexElement _parent;
     private readonly bool _reversed;
 
-    public FlexElementEnumerable(FlexElement parent, bool reversed)
+    public FlexChildEnumerable(FlexElement parent, bool reversed)
     {
         _parent = parent;
         _reversed = reversed;
     }
 
-    public FlexElementEnumerator GetEnumerator()
-    {
-        return new FlexElementEnumerator(_parent, _reversed);
-    }
+    public FlexChildEnumerator GetEnumerator() => new FlexChildEnumerator(_parent, _reversed);
 
-    IEnumerator<FlexElement> IEnumerable<FlexElement>.GetEnumerator()
-    {
-        return GetEnumerator();
-    }
+    IEnumerator<IFlexNode> IEnumerable<IFlexNode>.GetEnumerator() => throw new NotSupportedException();
 
-    IEnumerator IEnumerable.GetEnumerator()
-    {
-        return GetEnumerator();
-    }
+    IEnumerator IEnumerable.GetEnumerator() => throw new NotSupportedException();
 }
 
-internal struct FlexElementEnumerator : IEnumerator<FlexElement>
+internal struct FlexChildEnumerator : IEnumerator<IFlexNode>
 {
     private readonly Transform _parent;
     private readonly int _childCount;
     private readonly bool _reversed;
     private int _index;
 
-    public FlexElement Current { get; private set; }
+    public IFlexNode Current { get; private set; }
 
-    public FlexElementEnumerator(FlexElement parent, bool reversed)
+    public FlexChildEnumerator(FlexElement parent, bool reversed)
     {
         _parent = parent.transform;
         _childCount = _parent.childCount;
@@ -61,13 +53,13 @@ internal struct FlexElementEnumerator : IEnumerator<FlexElement>
             }
 
             var obj = _parent.GetChild(_index).gameObject;
-            if (!obj.TryGetComponent<FlexElement>(out var elem) || !elem.IsActive() || elem.IsAbsolute)
+            if (!obj.TryGetComponent<IFlexNode>(out var child) || !child.IsActive || child.IsAbsolute)
             {
                 _index += _reversed ? -1 : 1;
                 continue;
             }
 
-            Current = elem;
+            Current = child;
             _index += _reversed ? -1 : 1;
             return true;
         }
