@@ -10,12 +10,52 @@ public class FlexText : TMPro.TextMeshProUGUI, IFlexNode
     public FlexLength MinWidth, MaxWidth;
     public FlexLength MinHeight, MaxHeight;
 
+    private bool _isDirty;
+    private bool _isDoingLayout;
     private float _minWidth, _minHeight;
     private float _maxWidth, _maxHeight;
     private float _preferredWidth, _preferredHeight;
 
+#if UNITY_EDITOR
+    private DrivenRectTransformTracker _drivenTracker = new DrivenRectTransformTracker();
+#endif
+
+    protected override void Awake()
+    {
+        base.Awake();
+
+        SetupTransform();
+    }
+
+    protected override void OnDisable()
+    {
+#if UNITY_EDITOR
+        _drivenTracker.Clear();
+#endif
+
+        base.OnDisable();
+    }
+
     public override void SetLayoutDirty()
     {
+        if (_isDoingLayout || !IsActive())
+        {
+            return;
+        }
+
+#if !UNITY_EDITOR
+        if (_isDirty)
+        {
+            return;
+        }
+#endif
+
+#if UNITY_EDITOR
+        SetupTransform();
+#endif
+
+        _isDirty = true;
+
         base.SetLayoutDirty();
 
         var parent = transform.parent;
@@ -25,13 +65,23 @@ public class FlexText : TMPro.TextMeshProUGUI, IFlexNode
         }
     }
 
+    private void SetupTransform()
+    {
+        var rt = (RectTransform)transform;
+        rt.pivot = new Vector2(0, 1); // top left
+        rt.anchorMin = new Vector2(0, 1); // top left
+        rt.anchorMax = new Vector2(0, 1); // top left
+    }
+
     #region IFlexNode
     RectTransform IFlexNode.Transform => (RectTransform)transform;
     bool IFlexNode.IsActive => isActiveAndEnabled;
     bool IFlexNode.IsAbsolute => false;
     int IFlexNode.Grow => Grow;
+    FlexLength IFlexNode.MinWidth => MinWidth;
+    FlexLength IFlexNode.MinHeight => MinHeight;
     FlexLength IFlexNode.MaxWidth => MaxWidth;
-    FlexLength IFlexNode.MaxHeight => MinWidth;
+    FlexLength IFlexNode.MaxHeight => MaxHeight;
     
     void IFlexNode.CalculateSizes(IFlexNode parent)
     {
@@ -44,10 +94,8 @@ public class FlexText : TMPro.TextMeshProUGUI, IFlexNode
         _maxHeight = MaxHeight.GetValueOrDefault(parentMaxHeight);
 
         var preferredSize = GetPreferredValues(_maxWidth, _maxHeight);
-        _preferredWidth = preferredSize.x;
-        _preferredHeight = preferredSize.y;
-
-        Debug.Log(preferredSize);
+        _preferredWidth = Mathf.Clamp(preferredSize.x, _minWidth, _maxWidth);
+        _preferredHeight = Mathf.Clamp(preferredSize.y, _minHeight, _maxHeight);
     }
 
     void IFlexNode.GetCalculatedMinSize(out float minWidth, out float minHeight)
@@ -73,11 +121,19 @@ public class FlexText : TMPro.TextMeshProUGUI, IFlexNode
         var rt = (RectTransform)transform;
 
 #if UNITY_EDITOR
-        //_drivenTracker.Clear();
-        //_drivenTracker.Add(this, rt, DrivenTransformProperties.All);
+        _drivenTracker.Clear();
+        _drivenTracker.Add(this, rt, DrivenTransformProperties.All);
 #endif
 
-        rt.sizeDelta = new Vector2(width, height);
+        _isDoingLayout = true;
+        try
+        {
+            rt.sizeDelta = new Vector2(width, height);
+        }
+        finally
+        {
+            _isDoingLayout = false;
+        }
     }
     #endregion
 }

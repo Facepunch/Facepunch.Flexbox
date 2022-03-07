@@ -42,7 +42,6 @@ public class FlexLayoutManager : MonoBehaviour
         {
             foreach (var element in _updatingElements)
             {
-                element.CalculateSizes();
                 element.PerformLayout();
             }
         }
@@ -71,6 +70,9 @@ public class FlexLayoutManager : MonoBehaviour
             return;
         }
 
-        Instance._dirtyElements.Add(element);
+        if (!Instance._dirtyElements.Contains(element))
+        {
+            Instance._dirtyElements.Add(element);
+        }
     }
 }
