@@ -26,9 +26,9 @@ public class FlexElement : UIBehaviour, IFlexNode
     private bool _isDoingLayout;
     private float _minWidth, _minHeight;
     private float _maxWidth, _maxHeight;
+    private float _prefWidth, _prefHeight;
     private float _contentPrefWidth, _contentPrefHeight;
     private int _growSum, _shrinkSum;
-    private float _width, _height;
 
 #if UNITY_EDITOR
     private DrivenRectTransformTracker _drivenTracker = new DrivenRectTransformTracker();
@@ -88,23 +88,21 @@ public class FlexElement : UIBehaviour, IFlexNode
             Debug.LogWarning("FlexElement has no parent or self RectTransform - cannot do layout!");
             _minWidth = _maxWidth = 0;
             _minHeight = _maxHeight = 0;
-            _contentPrefWidth = 0;
-            _contentPrefHeight = 0;
+            _prefWidth = _contentPrefWidth = 0;
+            _prefHeight = _contentPrefHeight = 0;
             _growSum = 0;
             _shrinkSum = 0;
-            _width = 0;
-            _height = 0;
             return;
         }
 
         var parentRect = parentRectTransform.rect;
-        _width = parentRect.width;
-        _height = parentRect.height;
+        var width = parentRect.width;
+        var height = parentRect.height;
 
         var node = (IFlexNode)this;
         node.Measure();
-        node.LayoutHorizontal(_width, _height);
-        node.LayoutVertical(_width, _height);
+        node.LayoutHorizontal(width, height);
+        node.LayoutVertical(width, height);
     }
 
     private void MeasureImpl()
@@ -134,10 +132,18 @@ public class FlexElement : UIBehaviour, IFlexNode
             }
 
             child.GetCalculatedMinSize(out var childMinWidth, out var childMinHeight);
+            child.GetCalculatedMaxSize(out var childMaxWidth, out var childMaxHeight);
             child.GetPreferredSize(out var childPreferredWidth, out var childPreferredHeight);
 
-            growSum += child.Grow;
-            shrinkSum += child.Shrink;
+            var hasFixedWidth = !float.IsPositiveInfinity(childMaxWidth) && childMinWidth >= childMaxWidth;
+            var hasFixedHeight = !float.IsPositiveInfinity(childMaxHeight) && childMinHeight >= childMaxHeight;
+            var isFlexible = horizontal ? !hasFixedWidth : !hasFixedHeight;
+
+            if (isFlexible)
+            {
+                growSum += child.Grow;
+                shrinkSum += child.Shrink;
+            }
 
             var gap = first ? 0f : Gap;
             if (horizontal)
@@ -186,8 +192,11 @@ public class FlexElement : UIBehaviour, IFlexNode
         if (OverflowX) _maxWidth = float.PositiveInfinity;
         if (OverflowY) _maxHeight = float.PositiveInfinity;
 
-        _contentPrefWidth = Padding.left + Mathf.Max(horizontal ? mainAxisPreferredSize : crossAxisPreferredSize, contentMinWidth) + Padding.right;
-        _contentPrefHeight = Padding.top + Mathf.Max(horizontal ? crossAxisPreferredSize : mainAxisPreferredSize, contentMinHeight) + Padding.bottom;
+        _contentPrefWidth = Mathf.Max(horizontal ? mainAxisPreferredSize : crossAxisPreferredSize, contentMinWidth);
+        _contentPrefHeight = Mathf.Max(horizontal ? crossAxisPreferredSize : mainAxisPreferredSize, contentMinHeight);
+
+        _prefWidth = Padding.left + _contentPrefWidth + Padding.right;
+        _prefHeight = Padding.top + _contentPrefHeight + Padding.bottom;
 
         _growSum = growSum;
         _shrinkSum = shrinkSum;
@@ -234,8 +243,8 @@ public class FlexElement : UIBehaviour, IFlexNode
             var childMaxMain = horizontal ? childMaxWidth : childMaxHeight;
             var childPrefMain = horizontal ? childPreferredWidth : childPreferredHeight;
 
-            var mainSize = childPrefMain;
-            if (growthAllowance > 0 && child.Grow > 0)
+            var mainSize = Mathf.Max(childPrefMain, childMinMain);
+            if (growthAllowance > 0 && child.Grow > 0 && childMinMain < childMaxMain)
             {
                 if (horizontal) TakeGrowth(ref mainSize, childMaxWidth);
                 else TakeGrowth(ref mainSize, childMaxHeight);
@@ -307,8 +316,8 @@ public class FlexElement : UIBehaviour, IFlexNode
         var stretchCross = AlignItems == FlexAlign.Stretch;
 
         var innerSize = horizontal
-            ? maxHeight - Padding.left - Padding.right
-            : maxWidth - Padding.top - Padding.bottom;
+            ? maxHeight - Padding.top - Padding.bottom
+            : maxWidth - Padding.left - Padding.right;
 
         Debug.Log($"({name}) cross setup: w={maxWidth} h={maxHeight} inner={innerSize}", this);
 
@@ -579,8 +588,8 @@ public class FlexElement : UIBehaviour, IFlexNode
 
     void IFlexNode.GetPreferredSize(out float preferredWidth, out float preferredHeight)
     {
-        preferredWidth = _contentPrefWidth;
-        preferredHeight = _contentPrefHeight;
+        preferredWidth = _prefWidth;
+        preferredHeight = _prefHeight;
     }
     #endregion
 
