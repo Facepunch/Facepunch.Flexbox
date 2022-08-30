@@ -47,17 +47,19 @@ public class FlexElement : UIBehaviour, IFlexNode
         SetupTransform();
     }
 
-    public void SetLayoutDirty()
+    public void SetLayoutDirty(bool force = false)
     {
-        if (_isDoingLayout || !IsActive())
+        if (!force && (_isDoingLayout || !IsActive()))
         {
             return;
         }
         
+#if !UNITY_EDITOR
         if (_isDirty)
         {
             return;
         }
+#endif
         
         _isDirty = true;
 
@@ -100,13 +102,12 @@ public class FlexElement : UIBehaviour, IFlexNode
         _height = parentRect.height;
 
         var node = (IFlexNode)this;
-        node.CalculateInitialSizes();
-        node.LayoutMainAxis();
-        node.CalculateCrossAxisSizes(IsHorizontal);
-        node.LayoutCrossAxis();
+        node.Measure();
+        node.LayoutHorizontal(_width, _height);
+        node.LayoutVertical(_width, _height);
     }
 
-    private void CalculateInitialSizesImpl()
+    private void MeasureImpl()
     {
         var oldMinWidth = _minWidth;
         var oldMinHeight = _minHeight;
@@ -129,7 +130,7 @@ public class FlexElement : UIBehaviour, IFlexNode
         {
             if (child.IsDirty)
             {
-                child.CalculateInitialSizes();
+                child.Measure();
             }
 
             child.GetCalculatedMinSize(out var childMinWidth, out var childMinHeight);
@@ -162,16 +163,19 @@ public class FlexElement : UIBehaviour, IFlexNode
             }
         }
 
+        var contentMinWidth = horizontal ? mainAxisMinSize : crossAxisMinSize;
+        var contentMinHeight = horizontal ? crossAxisMinSize : mainAxisMinSize;
+
         if (IsAbsolute)
         {
             var rect = ((RectTransform)transform).rect;
             _minWidth = _maxWidth = rect.width;
-            _minHeight = _maxHeight = rect.height;
+            _minHeight = _maxHeight = rect.height;      
         }
         else
         {
-            var calculatedMinWidth = Padding.left + (horizontal ? mainAxisMinSize : crossAxisMinSize) + Padding.right;
-            var calculatedMinHeight = Padding.top + (horizontal ? crossAxisMinSize : mainAxisMinSize) + Padding.bottom;
+            var calculatedMinWidth = Padding.left + contentMinWidth + Padding.right;
+            var calculatedMinHeight = Padding.top + contentMinHeight + Padding.bottom;
             _minWidth = MinWidth.GetValueOrDefault(calculatedMinWidth);
             _minHeight = MinHeight.GetValueOrDefault(calculatedMinHeight);
 
@@ -182,8 +186,8 @@ public class FlexElement : UIBehaviour, IFlexNode
         if (OverflowX) _maxWidth = float.PositiveInfinity;
         if (OverflowY) _maxHeight = float.PositiveInfinity;
 
-        _contentPrefWidth = horizontal ? mainAxisPreferredSize : crossAxisPreferredSize;
-        _contentPrefHeight = horizontal ? crossAxisPreferredSize : mainAxisPreferredSize;
+        _contentPrefWidth = Padding.left + Mathf.Max(horizontal ? mainAxisPreferredSize : crossAxisPreferredSize, contentMinWidth) + Padding.right;
+        _contentPrefHeight = Padding.top + Mathf.Max(horizontal ? crossAxisPreferredSize : mainAxisPreferredSize, contentMinHeight) + Padding.bottom;
 
         _growSum = growSum;
         _shrinkSum = shrinkSum;
@@ -197,24 +201,27 @@ public class FlexElement : UIBehaviour, IFlexNode
         }
     }
 
-    private void LayoutMainAxisImpl()
+    private void LayoutMainAxis(float maxWidth, float maxHeight)
     {
         var horizontal = IsHorizontal;
         var reversed = IsReversed;
 
         var innerSize = horizontal
-            ? _width - Padding.left - Padding.right
-            : _height - Padding.top - Padding.bottom;
+            ? maxWidth - Padding.left - Padding.right
+            : maxHeight - Padding.top - Padding.bottom;
+        var prefMainSize = horizontal ? _contentPrefWidth : _contentPrefHeight;
 
         var growSum = _growSum;
-        var growthAllowance = Mathf.Max(innerSize - (horizontal ? _contentPrefWidth : _contentPrefHeight), 0);
+        var growthAllowance = Mathf.Max(innerSize - prefMainSize, 0);
 
         var shrinkSum = _shrinkSum;
-        var shrinkAllowance = Mathf.Max((horizontal ? _contentPrefWidth : _contentPrefHeight) - innerSize, 0);
+        var shrinkAllowance = Mathf.Max(prefMainSize - innerSize, 0);
 
-        var actualContentSize = horizontal ? _contentPrefWidth : _contentPrefHeight;
-        if (growSum > 0 && growthAllowance > 0) actualContentSize = innerSize;
-        else if (shrinkSum > 0 && shrinkAllowance > 0) actualContentSize = innerSize;
+        var actualMainSize = prefMainSize;
+        if (growSum > 0 && growthAllowance > 0) actualMainSize = innerSize;
+        else if (shrinkSum > 0 && shrinkAllowance > 0) actualMainSize = innerSize;
+
+        Debug.Log($"({name}) main setup: w={maxWidth} h={maxHeight} inner={innerSize} pref={prefMainSize} grow={growthAllowance} shrink={shrinkAllowance}", this);
 
         var mainAxisOffset = GetMainAxisStart(horizontal, reversed);
         foreach (var child in Children(reversed))
@@ -223,11 +230,15 @@ public class FlexElement : UIBehaviour, IFlexNode
             child.GetCalculatedMaxSize(out var childMaxWidth, out var childMaxHeight);
             child.GetPreferredSize(out var childPreferredWidth, out var childPreferredHeight);
 
-            var childSize = horizontal ? childPreferredWidth : childPreferredHeight;
+            var childMinMain = horizontal ? childMinWidth : childMinHeight;
+            var childMaxMain = horizontal ? childMaxWidth : childMaxHeight;
+            var childPrefMain = horizontal ? childPreferredWidth : childPreferredHeight;
+
+            var mainSize = childPrefMain;
             if (growthAllowance > 0 && child.Grow > 0)
             {
-                if (horizontal) TakeGrowth(ref childSize, childMaxWidth);
-                else TakeGrowth(ref childSize, childMaxHeight);
+                if (horizontal) TakeGrowth(ref mainSize, childMaxWidth);
+                else TakeGrowth(ref mainSize, childMaxHeight);
 
                 void TakeGrowth(ref float value, float maxValue)
                 {
@@ -239,22 +250,33 @@ public class FlexElement : UIBehaviour, IFlexNode
                 }
             }
 
-            childSize = horizontal
-                ? Mathf.Clamp(childSize, childMinWidth, childMaxWidth)
-                : Mathf.Clamp(childSize, childMinHeight, childMaxHeight);
+            // todo: shrink
+
+            var clampedMainSize = Mathf.Clamp(mainSize, childMinMain, childMaxMain);
+
+            Debug.Log($"({name}) main: min={childMinMain} max={childMaxMain} pref={childPrefMain} clamped={clampedMainSize}", child.Transform);
+
+            if (horizontal) child.LayoutHorizontal(clampedMainSize, float.PositiveInfinity);
+            else child.LayoutVertical(float.PositiveInfinity, clampedMainSize);
 
             var childRt = child.Transform;
+
+            var childSizeDelta = childRt.sizeDelta;
             childRt.sizeDelta = horizontal
-                ? new Vector2(childSize, 0)
-                : new Vector2(0, childSize);
+                ? new Vector2(clampedMainSize, childSizeDelta.y)
+                : new Vector2(childSizeDelta.x, clampedMainSize);
+
+            var childAnchoredPos = childRt.anchoredPosition;
             childRt.anchoredPosition = horizontal
-                ? new Vector2(mainAxisOffset, 0)
-                : new Vector2(0, mainAxisOffset);
+                ? new Vector2(mainAxisOffset, childAnchoredPos.y)
+                : new Vector2(childAnchoredPos.x, mainAxisOffset);
 
             mainAxisOffset += horizontal
-                ? childSize + Gap
-                : -childSize - Gap;
+                ? clampedMainSize + Gap
+                : -clampedMainSize - Gap;
         }
+
+        _isDirty = false;
 
         float GetMainAxisStart(bool isHorizontal, bool isReversed)
         {
@@ -262,32 +284,89 @@ public class FlexElement : UIBehaviour, IFlexNode
             {
                 case FlexJustify.Start:
                     return isHorizontal
-                        ? (isReversed ? innerSize - actualContentSize + Padding.left : Padding.left)
-                        : -(isReversed ? innerSize - actualContentSize + Padding.top : Padding.top);
+                        ? (isReversed ? innerSize - actualMainSize + Padding.left : Padding.left)
+                        : -(isReversed ? innerSize - actualMainSize + Padding.top : Padding.top);
                 case FlexJustify.End:
                     return isHorizontal
-                        ? (isReversed ? Padding.left : innerSize - actualContentSize + Padding.left)
-                        : -(isReversed ? Padding.top : innerSize - actualContentSize + Padding.top);
+                        ? (isReversed ? Padding.left : innerSize - actualMainSize + Padding.left)
+                        : -(isReversed ? Padding.top : innerSize - actualMainSize + Padding.top);
                 case FlexJustify.Center:
                     return isHorizontal
-                        ? ((innerSize - actualContentSize) / 2) + Padding.left
-                        : -((innerSize - actualContentSize) / 2) - Padding.top;
+                        ? ((innerSize - actualMainSize) / 2) + Padding.left
+                        : -((innerSize - actualMainSize) / 2) - Padding.top;
                 default:
                     throw new NotSupportedException(JustifyContent.ToString());
             }
         }
     }
 
-    private void CalculateCrossAxisSizesImpl(float mainAxisSize, bool mainAxisIsHorizontal)
+    private void LayoutCrossAxis(float maxWidth, float maxHeight)
     {
-        // assuming a main axis size, what is our preferred cross axis size?
+        var horizontal = IsHorizontal;
+        var reversed = IsReversed;
+        var stretchCross = AlignItems == FlexAlign.Stretch;
 
+        var innerSize = horizontal
+            ? maxHeight - Padding.left - Padding.right
+            : maxWidth - Padding.top - Padding.bottom;
 
-    }
+        Debug.Log($"({name}) cross setup: w={maxWidth} h={maxHeight} inner={innerSize}", this);
 
-    private void LayoutCrossAxisImpl()
-    {
-        throw new NotImplementedException();
+        foreach (var child in Children(reversed))
+        {
+            child.GetCalculatedMinSize(out var childMinWidth, out var childMinHeight);
+            child.GetCalculatedMaxSize(out var childMaxWidth, out var childMaxHeight);
+            child.GetPreferredSize(out var childPreferredWidth, out var childPreferredHeight);
+
+            var childMinCross = horizontal ? childMinHeight : childMinWidth;
+            var childMaxCross = horizontal ? childMaxHeight : childMaxWidth;
+            var childPrefCross = horizontal ? childPreferredHeight : childPreferredWidth;
+            var crossSize = stretchCross ? innerSize : childPrefCross;
+            var clampedCrossSize = Mathf.Clamp(crossSize, childMinCross, childMaxCross);
+
+            var layoutMaxWidth = horizontal ? float.PositiveInfinity : clampedCrossSize;
+            var layoutMaxHeight = horizontal ? clampedCrossSize : float.PositiveInfinity;
+            if (horizontal) child.LayoutVertical(layoutMaxWidth, layoutMaxHeight);
+            else child.LayoutHorizontal(layoutMaxWidth, layoutMaxHeight);
+
+            Debug.Log($"({name}) cross: min={childMinCross} max={childMaxCross} pref={childPrefCross} clamped={clampedCrossSize}", child.Transform);
+
+            var crossAxis = GetCrossAxis(horizontal, layoutMaxWidth, layoutMaxHeight);
+
+            var childRt = child.Transform;
+            
+            var childSizeDelta = childRt.sizeDelta;
+            childRt.sizeDelta = horizontal
+                ? new Vector2(childSizeDelta.x, clampedCrossSize)
+                : new Vector2(clampedCrossSize, childSizeDelta.y);
+            
+            var childAnchoredPos = childRt.anchoredPosition;
+            childRt.anchoredPosition = horizontal
+                ? new Vector2(childAnchoredPos.x, crossAxis)
+                : new Vector2(crossAxis, childAnchoredPos.y);
+        }
+
+        float GetCrossAxis(bool isHorizontal, float childWidth, float childHeight)
+        {
+            switch (AlignItems)
+            {
+                case FlexAlign.Start:
+                case FlexAlign.Stretch:
+                    return isHorizontal
+                        ? -Padding.top
+                        : Padding.left;
+                case FlexAlign.End:
+                    return isHorizontal
+                        ? -innerSize - Padding.top + childHeight
+                        : innerSize - Padding.right - childWidth;
+                case FlexAlign.Center:
+                    return isHorizontal
+                        ? -((innerSize / 2) - (childHeight / 2) + Padding.top)
+                        : (innerSize / 2) - (childWidth / 2) + Padding.left;
+                default:
+                    throw new NotSupportedException(AlignItems.ToString());
+            }
+        }
     }
 
     /*private void PerformLayoutImpl(float width, float height)
@@ -453,16 +532,17 @@ public class FlexElement : UIBehaviour, IFlexNode
     int IFlexNode.Grow => Grow;
     int IFlexNode.Shrink => Shrink;
 
-    void IFlexNode.CalculateInitialSizes() =>
-        CalculateInitialSizesImpl();
+    void IFlexNode.Measure() =>
+        MeasureImpl();
 
-    void IFlexNode.LayoutMainAxis()
+    void IFlexNode.LayoutHorizontal(float maxWidth, float maxHeight)
     {
         _isDoingLayout = true;
 
         try
         {
-            LayoutMainAxisImpl();
+            if (IsHorizontal) LayoutMainAxis(maxWidth, maxHeight);
+            else LayoutCrossAxis(maxWidth, maxHeight);
         }
         finally
         {
@@ -470,16 +550,14 @@ public class FlexElement : UIBehaviour, IFlexNode
         }
     }
 
-    void IFlexNode.CalculateCrossAxisSizes(float mainAxisSize, bool mainAxisIsHorizontal) =>
-        CalculateCrossAxisSizesImpl(mainAxisSize, mainAxisIsHorizontal);
-
-    void IFlexNode.LayoutCrossAxis()
+    void IFlexNode.LayoutVertical(float maxWidth, float maxHeight)
     {
         _isDoingLayout = true;
 
         try
         {
-            LayoutCrossAxisImpl();
+            if (IsHorizontal) LayoutCrossAxis(maxWidth, maxHeight);
+            else LayoutMainAxis(maxWidth, maxHeight);
         }
         finally
         {
@@ -510,7 +588,7 @@ public class FlexElement : UIBehaviour, IFlexNode
 
     protected override void OnDisable()
     {
-        SetLayoutDirty();
+        SetLayoutDirty(true);
 
 #if UNITY_EDITOR
         _drivenTracker.Clear();

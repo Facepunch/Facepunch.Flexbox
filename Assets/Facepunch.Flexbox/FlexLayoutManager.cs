@@ -1,7 +1,7 @@
 ﻿using System.Collections.Generic;
 using UnityEngine;
 
-[ExecuteAlways]
+[ExecuteAlways, DefaultExecutionOrder(-100)]
 public class FlexLayoutManager : MonoBehaviour
 {
     public static FlexLayoutManager Instance { get; private set; }

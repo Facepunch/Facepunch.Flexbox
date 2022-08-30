@@ -10,6 +10,7 @@ public class FlexElementEditor : Editor
     private SerializedProperty _padding;
     private SerializedProperty _gap;
     private SerializedProperty _grow;
+    private SerializedProperty _shrink;
     private SerializedProperty _isAbsolute;
     private SerializedProperty _minWidth, _maxWidth;
     private SerializedProperty _minHeight, _maxHeight;
@@ -23,6 +24,7 @@ public class FlexElementEditor : Editor
         _padding = serializedObject.FindProperty("Padding");
         _gap = serializedObject.FindProperty("Gap");
         _grow = serializedObject.FindProperty("Grow");
+        _shrink = serializedObject.FindProperty("Shrink");
         _isAbsolute = serializedObject.FindProperty("IsAbsolute");
         _minWidth = serializedObject.FindProperty("MinWidth");
         _maxWidth = serializedObject.FindProperty("MaxWidth");
@@ -41,11 +43,12 @@ public class FlexElementEditor : Editor
         EditorGUILayout.PropertyField(_alignItems);
         EditorGUILayout.PropertyField(_padding);
         EditorGUILayout.PropertyField(_gap);
-        EditorGUILayout.PropertyField(_grow);
         EditorGUILayout.PropertyField(_isAbsolute);
 
         if (!_isAbsolute.hasMultipleDifferentValues && !_isAbsolute.boolValue)
         {
+            EditorGUILayout.PropertyField(_grow);
+            EditorGUILayout.PropertyField(_shrink);
             EditorGUILayout.PropertyField(_minWidth);
             EditorGUILayout.PropertyField(_maxWidth);
             EditorGUILayout.PropertyField(_minHeight);

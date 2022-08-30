@@ -10,12 +10,11 @@ public interface IFlexNode
     int Grow { get; }
     int Shrink { get; }
 
-    void SetLayoutDirty();
+    void SetLayoutDirty(bool force = false);
 
-    void CalculateInitialSizes();
-    void LayoutMainAxis();
-    void CalculateCrossAxisSizes(float mainAxisSize, bool mainAxisIsHorizontal);
-    void LayoutCrossAxis();
+    void Measure();
+    void LayoutHorizontal(float maxWidth, float maxHeight);
+    void LayoutVertical(float maxWidth, float maxHeight);
 
     void GetCalculatedMinSize(out float minWidth, out float minHeight);
     void GetCalculatedMaxSize(out float maxWidth, out float maxHeight);
