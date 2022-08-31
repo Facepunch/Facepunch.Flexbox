@@ -109,7 +109,7 @@ public class FlexText : TMPro.TextMeshProUGUI, IFlexNode
     {
         var rt = (RectTransform)transform;
         var size = rt.sizeDelta;
-        Debug.Log($"text vertical w={size.x}");
+        //Debug.Log($"text vertical w={size.x}");
 
         var preferredSize = GetPreferredValues(Mathf.Min(size.x, _maxWidth), float.PositiveInfinity);
         _preferredWidth = Mathf.Clamp(preferredSize.x, _minWidth, _maxWidth);
