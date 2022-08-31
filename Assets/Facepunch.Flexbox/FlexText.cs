@@ -6,7 +6,7 @@
 public class FlexText : TMPro.TextMeshProUGUI, IFlexNode
 {
     [Min(0)]
-    public int Grow = 0;
+    public int Grow = 1;
     [Min(0)]
     public int Shrink = 1;
     public FlexLength MinWidth, MaxWidth;
@@ -103,22 +103,11 @@ public class FlexText : TMPro.TextMeshProUGUI, IFlexNode
 
     void IFlexNode.LayoutHorizontal(float maxWidth, float maxHeight)
     {
-        var rt = (RectTransform)transform;
+        Debug.Log($"text h w={maxWidth} h={maxHeight}");
 
-#if UNITY_EDITOR
-        _drivenTracker.Clear();
-        _drivenTracker.Add(this, rt, DrivenTransformProperties.All);
-#endif
-
-        _isDoingLayout = true;
-        try
-        {
-            rt.sizeDelta = new Vector2(100, 100); // todo: do layout
-        }
-        finally
-        {
-            _isDoingLayout = false;
-        }
+        var preferredSize = GetPreferredValues(Mathf.Min(maxWidth, _maxWidth), Mathf.Min(maxHeight, _maxHeight));
+        _preferredWidth = Mathf.Clamp(preferredSize.x, _minWidth, _maxWidth);
+        _preferredHeight = Mathf.Clamp(preferredSize.y, _minHeight, _maxHeight);
     }
 
     void IFlexNode.LayoutVertical(float maxWidth, float maxHeight)
