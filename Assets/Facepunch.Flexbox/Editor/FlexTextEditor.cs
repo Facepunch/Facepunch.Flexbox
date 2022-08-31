@@ -6,6 +6,7 @@ using TMPro.EditorUtilities;
 public class FlexTextEditor : TMP_EditorPanelUI
 {
     private SerializedProperty _grow;
+    private SerializedProperty _shrink;
     private SerializedProperty _minWidth, _maxWidth;
     private SerializedProperty _minHeight, _maxHeight;
 
@@ -14,6 +15,7 @@ public class FlexTextEditor : TMP_EditorPanelUI
         base.OnEnable();
 
         _grow = serializedObject.FindProperty("Grow");
+        _shrink = serializedObject.FindProperty("Shrink");
         _minWidth = serializedObject.FindProperty("MinWidth");
         _maxWidth = serializedObject.FindProperty("MaxWidth");
         _minHeight = serializedObject.FindProperty("MinHeight");
@@ -27,6 +29,7 @@ public class FlexTextEditor : TMP_EditorPanelUI
         serializedObject.Update();
         
         EditorGUILayout.PropertyField(_grow);
+        EditorGUILayout.PropertyField(_shrink);
         EditorGUILayout.PropertyField(_minWidth);
         EditorGUILayout.PropertyField(_maxWidth);
         EditorGUILayout.PropertyField(_minHeight);

@@ -12,9 +12,9 @@ public class FlexElementEditor : Editor
     private SerializedProperty _grow;
     private SerializedProperty _shrink;
     private SerializedProperty _isAbsolute;
+    private SerializedProperty _overflowX, _overflowY;
     private SerializedProperty _minWidth, _maxWidth;
     private SerializedProperty _minHeight, _maxHeight;
-    private SerializedProperty _overflowX, _overflowY;
 
     public void OnEnable()
     {
@@ -26,12 +26,12 @@ public class FlexElementEditor : Editor
         _grow = serializedObject.FindProperty("Grow");
         _shrink = serializedObject.FindProperty("Shrink");
         _isAbsolute = serializedObject.FindProperty("IsAbsolute");
+        _overflowX = serializedObject.FindProperty("OverflowX");
+        _overflowY = serializedObject.FindProperty("OverflowY");
         _minWidth = serializedObject.FindProperty("MinWidth");
         _maxWidth = serializedObject.FindProperty("MaxWidth");
         _minHeight = serializedObject.FindProperty("MinHeight");
         _maxHeight = serializedObject.FindProperty("MaxHeight");
-        _overflowX = serializedObject.FindProperty("OverflowX");
-        _overflowY = serializedObject.FindProperty("OverflowY");
     }
 
     public override void OnInspectorGUI()
@@ -47,14 +47,24 @@ public class FlexElementEditor : Editor
 
         if (!_isAbsolute.hasMultipleDifferentValues && !_isAbsolute.boolValue)
         {
+            EditorGUILayout.PropertyField(_overflowX);
+            EditorGUILayout.PropertyField(_overflowY);
+
             EditorGUILayout.PropertyField(_grow);
             EditorGUILayout.PropertyField(_shrink);
             EditorGUILayout.PropertyField(_minWidth);
-            EditorGUILayout.PropertyField(_maxWidth);
+
+            if (!_overflowX.hasMultipleDifferentValues && !_overflowX.boolValue)
+            {
+                EditorGUILayout.PropertyField(_maxWidth);
+            }
+
             EditorGUILayout.PropertyField(_minHeight);
-            EditorGUILayout.PropertyField(_maxHeight);
-            EditorGUILayout.PropertyField(_overflowX);
-            EditorGUILayout.PropertyField(_overflowY);
+
+            if (!_overflowY.hasMultipleDifferentValues && !_overflowY.boolValue)
+            {
+                EditorGUILayout.PropertyField(_maxHeight);
+            }
         }
 
         serializedObject.ApplyModifiedProperties();
