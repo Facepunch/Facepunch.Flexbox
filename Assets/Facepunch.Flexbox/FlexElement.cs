@@ -233,7 +233,7 @@ public class FlexElement : UIBehaviour, IFlexNode
         if (growSum > 0 && growthAllowance > 0) actualMainSize = innerSize;
         else if (shrinkSum > 0 && shrinkAllowance > 0) actualMainSize = innerSize;
 
-        Debug.Log($"({name}) main setup: w={maxWidth} h={maxHeight} inner={innerSize} pref={prefMainSize} grow={growthAllowance} shrink={shrinkAllowance}", this);
+        //Debug.Log($"({name}) main setup: w={maxWidth} h={maxHeight} inner={innerSize} pref={prefMainSize} grow={growthAllowance} shrink={shrinkAllowance}", this);
 
         var mainAxisOffset = GetMainAxisStart(horizontal, reversed);
         foreach (var child in Children(reversed))
@@ -245,9 +245,10 @@ public class FlexElement : UIBehaviour, IFlexNode
             var childMinMain = horizontal ? childMinWidth : childMinHeight;
             var childMaxMain = horizontal ? childMaxWidth : childMaxHeight;
             var childPrefMain = horizontal ? childPreferredWidth : childPreferredHeight;
+            var childFlexible = childMinMain < childMaxMain;
 
             var mainSize = Mathf.Max(childPrefMain, childMinMain);
-            if (growthAllowance > 0 && child.Grow > 0 && childMinMain < childMaxMain)
+            if (growthAllowance > 0 && child.Grow > 0 && childFlexible)
             {
                 if (horizontal) TakeGrowth(ref mainSize, childMaxWidth);
                 else TakeGrowth(ref mainSize, childMaxHeight);
@@ -261,12 +262,25 @@ public class FlexElement : UIBehaviour, IFlexNode
                     growSum -= child.Grow;
                 }
             }
+            
+            if (shrinkAllowance > 0 && child.Shrink > 0 && childFlexible)
+            {
+                if (horizontal) TakeShrink(ref mainSize, childMinWidth);
+                else TakeShrink(ref mainSize, childMinHeight);
 
-            // todo: shrink
+                void TakeShrink(ref float value, float minValue)
+                {
+                    var shrinkPotential = ((float)child.Shrink / shrinkSum) * shrinkAllowance;
+                    var shrinkAmount = Mathf.Clamp(value - minValue, 0, shrinkPotential);
+                    value -= shrinkAmount;
+                    shrinkAllowance -= shrinkAmount;
+                    shrinkSum -= child.Shrink;
+                }
+            }
 
             var clampedMainSize = Mathf.Clamp(mainSize, childMinMain, childMaxMain);
 
-            Debug.Log($"({name}) main: min={childMinMain} max={childMaxMain} pref={childPrefMain} clamped={clampedMainSize}", child.Transform);
+            //Debug.Log($"({name}) main: min={childMinMain} max={childMaxMain} pref={childPrefMain} clamped={clampedMainSize}", child.Transform);
 
             if (horizontal) child.LayoutHorizontal(clampedMainSize, float.PositiveInfinity);
             else child.LayoutVertical(float.PositiveInfinity, clampedMainSize);
@@ -322,7 +336,7 @@ public class FlexElement : UIBehaviour, IFlexNode
             ? maxHeight - Padding.top - Padding.bottom
             : maxWidth - Padding.left - Padding.right;
 
-        Debug.Log($"({name}) cross setup: w={maxWidth} h={maxHeight} inner={innerSize}", this);
+        //Debug.Log($"({name}) cross setup: w={maxWidth} h={maxHeight} inner={innerSize}", this);
 
         foreach (var child in Children(reversed))
         {
@@ -341,7 +355,7 @@ public class FlexElement : UIBehaviour, IFlexNode
             if (horizontal) child.LayoutVertical(layoutMaxWidth, layoutMaxHeight);
             else child.LayoutHorizontal(layoutMaxWidth, layoutMaxHeight);
 
-            Debug.Log($"({name}) cross: min={childMinCross} max={childMaxCross} pref={childPrefCross} clamped={clampedCrossSize}", child.Transform);
+            //Debug.Log($"({name}) cross: min={childMinCross} max={childMaxCross} pref={childPrefCross} clamped={clampedCrossSize}", child.Transform);
 
             var crossAxis = GetCrossAxis(horizontal, layoutMaxWidth, layoutMaxHeight);
 
