@@ -88,7 +88,7 @@ public class FlexText : TMPro.TextMeshProUGUI, IFlexNode
         SetLayoutDirty();
     }
     
-    void IFlexNode.Measure()
+    void IFlexNode.MeasureHorizontal()
     {
         _minWidth = MinWidth.GetValueOrDefault(0);
         _maxWidth = MaxWidth.GetValueOrDefault(float.PositiveInfinity);
@@ -103,16 +103,22 @@ public class FlexText : TMPro.TextMeshProUGUI, IFlexNode
 
     void IFlexNode.LayoutHorizontal(float maxWidth, float maxHeight)
     {
-        Debug.Log($"text h w={maxWidth} h={maxHeight}");
+    }
 
-        var preferredSize = GetPreferredValues(Mathf.Min(maxWidth, _maxWidth), Mathf.Min(maxHeight, _maxHeight));
+    void IFlexNode.MeasureVertical()
+    {
+        var rt = (RectTransform)transform;
+        var size = rt.sizeDelta;
+        Debug.Log($"text vertical w={size.x}");
+
+        var preferredSize = GetPreferredValues(Mathf.Min(size.x, _maxWidth), float.PositiveInfinity);
         _preferredWidth = Mathf.Clamp(preferredSize.x, _minWidth, _maxWidth);
         _preferredHeight = Mathf.Clamp(preferredSize.y, _minHeight, _maxHeight);
     }
 
     void IFlexNode.LayoutVertical(float maxWidth, float maxHeight)
     {
-
+        _isDirty = false;
     }
 
     void IFlexNode.GetCalculatedMinSize(out float minWidth, out float minHeight)

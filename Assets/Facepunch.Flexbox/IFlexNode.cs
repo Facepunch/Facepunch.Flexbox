@@ -12,8 +12,9 @@ public interface IFlexNode
 
     void SetLayoutDirty(bool force = false);
 
-    void Measure();
+    void MeasureHorizontal();
     void LayoutHorizontal(float maxWidth, float maxHeight);
+    void MeasureVertical();
     void LayoutVertical(float maxWidth, float maxHeight);
 
     void GetCalculatedMinSize(out float minWidth, out float minHeight);

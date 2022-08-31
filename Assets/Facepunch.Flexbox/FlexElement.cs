@@ -100,12 +100,13 @@ public class FlexElement : UIBehaviour, IFlexNode
         var height = parentRect.height;
 
         var node = (IFlexNode)this;
-        node.Measure();
+        node.MeasureHorizontal();
         node.LayoutHorizontal(width, height);
+        node.MeasureVertical();
         node.LayoutVertical(width, height);
     }
 
-    private void MeasureImpl()
+    private void MeasureMainAxis()
     {
         var oldMinWidth = _minWidth;
         var oldMinHeight = _minHeight;
@@ -128,7 +129,8 @@ public class FlexElement : UIBehaviour, IFlexNode
         {
             if (child.IsDirty)
             {
-                child.Measure();
+                if (horizontal) child.MeasureHorizontal();
+                else child.MeasureVertical();
             }
 
             child.GetCalculatedMinSize(out var childMinWidth, out var childMinHeight);
@@ -233,7 +235,7 @@ public class FlexElement : UIBehaviour, IFlexNode
         if (growSum > 0 && growthAllowance > 0) actualMainSize = innerSize;
         else if (shrinkSum > 0 && shrinkAllowance > 0) actualMainSize = innerSize;
 
-        //Debug.Log($"({name}) main setup: w={maxWidth} h={maxHeight} inner={innerSize} pref={prefMainSize} grow={growthAllowance} shrink={shrinkAllowance}", this);
+        Debug.Log($"({name}) main setup: w={maxWidth} h={maxHeight} inner={innerSize} pref={prefMainSize} grow={growthAllowance} shrink={shrinkAllowance}", this);
 
         var mainAxisOffset = GetMainAxisStart(horizontal, reversed);
         foreach (var child in Children(reversed))
@@ -302,8 +304,6 @@ public class FlexElement : UIBehaviour, IFlexNode
                 : -clampedMainSize - Gap;
         }
 
-        _isDirty = false;
-
         float GetMainAxisStart(bool isHorizontal, bool isReversed)
         {
             switch (JustifyContent)
@@ -326,6 +326,115 @@ public class FlexElement : UIBehaviour, IFlexNode
         }
     }
 
+    private void MeasureCrossAxis()
+    {
+        var oldMinWidth = _minWidth;
+        var oldMinHeight = _minHeight;
+        var oldMaxWidth = _maxWidth;
+        var oldMaxHeight = _maxHeight;
+        var oldContentPrefWidth = _contentPrefWidth;
+        var oldContentPrefHeight = _contentPrefHeight;
+        var oldGrowSum = _growSum;
+        var oldShrinkSum = _shrinkSum;
+
+        var horizontal = IsHorizontal;
+        var mainAxisMinSize = 0f;
+        var crossAxisMinSize = 0f;
+        var mainAxisPreferredSize = 0f;
+        var crossAxisPreferredSize = 0f;
+        var growSum = 0;
+        var shrinkSum = 0;
+        var first = true;
+        foreach (var child in Children())
+        {
+            if (child.IsDirty)
+            {
+                if (horizontal) child.MeasureVertical();
+                else child.MeasureHorizontal();
+            }
+
+            child.GetCalculatedMinSize(out var childMinWidth, out var childMinHeight);
+            child.GetCalculatedMaxSize(out var childMaxWidth, out var childMaxHeight);
+            child.GetPreferredSize(out var childPreferredWidth, out var childPreferredHeight);
+
+            childPreferredWidth = Mathf.Clamp(childPreferredWidth, childMinWidth, childMaxWidth);
+            childPreferredHeight = Mathf.Clamp(childPreferredHeight, childMinHeight, childMaxHeight);
+
+            var hasFixedWidth = !float.IsPositiveInfinity(childMaxWidth) && childMinWidth >= childMaxWidth;
+            var hasFixedHeight = !float.IsPositiveInfinity(childMaxHeight) && childMinHeight >= childMaxHeight;
+            var isFlexible = horizontal ? !hasFixedWidth : !hasFixedHeight;
+
+            if (isFlexible)
+            {
+                growSum += child.Grow;
+                shrinkSum += child.Shrink;
+            }
+
+            var gap = first ? 0f : Gap;
+            if (horizontal)
+            {
+                mainAxisMinSize += childMinWidth + gap;
+                crossAxisMinSize = Mathf.Max(crossAxisMinSize, childMinHeight);
+
+                mainAxisPreferredSize += childPreferredWidth + gap;
+                crossAxisPreferredSize = Mathf.Max(crossAxisPreferredSize, childPreferredHeight);
+            }
+            else
+            {
+                mainAxisMinSize += childMinHeight + gap;
+                crossAxisMinSize = Mathf.Max(crossAxisMinSize, childMinWidth);
+
+                mainAxisPreferredSize += childPreferredHeight + gap;
+                crossAxisPreferredSize = Mathf.Max(crossAxisPreferredSize, childPreferredWidth);
+            }
+
+            if (first)
+            {
+                first = false;
+            }
+        }
+
+        var contentMinWidth = horizontal ? mainAxisMinSize : crossAxisMinSize;
+        var contentMinHeight = horizontal ? crossAxisMinSize : mainAxisMinSize;
+
+        if (IsAbsolute)
+        {
+            var rect = ((RectTransform)transform).rect;
+            _minWidth = _maxWidth = rect.width;
+            _minHeight = _maxHeight = rect.height;      
+        }
+        else
+        {
+            var calculatedMinWidth = Padding.left + contentMinWidth + Padding.right;
+            var calculatedMinHeight = Padding.top + contentMinHeight + Padding.bottom;
+            _minWidth = MinWidth.GetValueOrDefault(calculatedMinWidth);
+            _minHeight = MinHeight.GetValueOrDefault(calculatedMinHeight);
+
+            _maxWidth = MaxWidth.GetValueOrDefault(float.PositiveInfinity);
+            _maxHeight = MaxHeight.GetValueOrDefault(float.PositiveInfinity);
+        }
+
+        if (OverflowX) _maxWidth = float.PositiveInfinity;
+        if (OverflowY) _maxHeight = float.PositiveInfinity;
+
+        _contentPrefWidth = Mathf.Max(horizontal ? mainAxisPreferredSize : crossAxisPreferredSize, contentMinWidth);
+        _contentPrefHeight = Mathf.Max(horizontal ? crossAxisPreferredSize : mainAxisPreferredSize, contentMinHeight);
+
+        _prefWidth = Mathf.Max(Padding.left + _contentPrefWidth + Padding.right, _minWidth);
+        _prefHeight = Mathf.Max(Padding.top + _contentPrefHeight + Padding.bottom, _minHeight);
+
+        _growSum = growSum;
+        _shrinkSum = shrinkSum;
+
+        if (!_isDirty && (_minWidth != oldMinWidth || _minHeight != oldMinHeight ||
+            _maxWidth != oldMaxWidth || _maxHeight != oldMaxHeight ||
+            _contentPrefWidth != oldContentPrefWidth || _contentPrefHeight != oldContentPrefHeight ||
+            _growSum != oldGrowSum || _shrinkSum != oldShrinkSum))
+        {
+            SetLayoutDirty();
+        }
+    }
+
     private void LayoutCrossAxis(float maxWidth, float maxHeight)
     {
         var horizontal = IsHorizontal;
@@ -336,7 +445,7 @@ public class FlexElement : UIBehaviour, IFlexNode
             ? maxHeight - Padding.top - Padding.bottom
             : maxWidth - Padding.left - Padding.right;
 
-        //Debug.Log($"({name}) cross setup: w={maxWidth} h={maxHeight} inner={innerSize}", this);
+        Debug.Log($"({name}) cross setup: w={maxWidth} h={maxHeight} inner={innerSize}", this);
 
         foreach (var child in Children(reversed))
         {
@@ -558,8 +667,11 @@ public class FlexElement : UIBehaviour, IFlexNode
     int IFlexNode.Grow => Grow;
     int IFlexNode.Shrink => Shrink;
 
-    void IFlexNode.Measure() =>
-        MeasureImpl();
+    void IFlexNode.MeasureHorizontal()
+    {
+        if (IsHorizontal) MeasureMainAxis();
+        else MeasureCrossAxis();
+    }
 
     void IFlexNode.LayoutHorizontal(float maxWidth, float maxHeight)
     {
@@ -576,6 +688,12 @@ public class FlexElement : UIBehaviour, IFlexNode
         }
     }
 
+    void IFlexNode.MeasureVertical()
+    {
+        if (IsHorizontal) MeasureCrossAxis();
+        else MeasureMainAxis();
+    }
+
     void IFlexNode.LayoutVertical(float maxWidth, float maxHeight)
     {
         _isDoingLayout = true;
@@ -584,6 +702,8 @@ public class FlexElement : UIBehaviour, IFlexNode
         {
             if (IsHorizontal) LayoutCrossAxis(maxWidth, maxHeight);
             else LayoutMainAxis(maxWidth, maxHeight);
+
+            _isDirty = false;
         }
         finally
         {
