@@ -21,9 +21,9 @@ public class FlexElement : UIBehaviour, IFlexNode
     [Min(0)]
     public int Shrink = 1;
     public bool IsAbsolute;
+    public bool AutoSizeX, AutoSizeY;
     public FlexLength MinWidth, MaxWidth;
     public FlexLength MinHeight, MaxHeight;
-    public bool OverflowX, OverflowY;
 
     private bool _isDirty;
     private bool _isDoingLayout;
@@ -85,30 +85,37 @@ public class FlexElement : UIBehaviour, IFlexNode
 
     internal void PerformLayout()
     {
-        var parentObj = transform.parent != null
-            ? transform.parent.gameObject
-            : gameObject;
-        if (!parentObj.TryGetComponent<RectTransform>(out var parentRectTransform))
-        {
-            Debug.LogWarning("FlexElement has no parent or self RectTransform - cannot do layout!");
-            _minWidth = _maxWidth = 0;
-            _minHeight = _maxHeight = 0;
-            _prefWidth = _contentPrefWidth = 0;
-            _prefHeight = _contentPrefHeight = 0;
-            _growSum = 0;
-            _shrinkSum = 0;
-            return;
-        }
+        var rectTransform = (RectTransform)transform;
 
-        var parentRect = parentRectTransform.rect;
-        var width = parentRect.width;
-        var height = parentRect.height;
+        var rect = rectTransform.rect;
+        var width = rect.width;
+        var height = rect.height;
 
         var node = (IFlexNode)this;
         node.MeasureHorizontal();
-        node.LayoutHorizontal(width, height);
+        node.LayoutHorizontal(AutoSizeX ? _prefWidth : width, AutoSizeY ? _prefHeight : height);
         node.MeasureVertical();
-        node.LayoutVertical(width, height);
+        node.LayoutVertical(AutoSizeX ? _prefWidth : width, AutoSizeY ? _prefHeight : height);
+
+        if (AutoSizeX)
+        {
+            //Debug.Log($"w={_prefWidth}");
+            rectTransform.SetSizeWithCurrentAnchors(RectTransform.Axis.Horizontal, _prefWidth);
+            
+#if UNITY_EDITOR
+            _drivenTracker.Add(this, rectTransform, DrivenTransformProperties.SizeDeltaX);
+#endif
+        }
+
+        if (AutoSizeY)
+        {
+            //Debug.Log($"h={_prefHeight}");
+            rectTransform.SetSizeWithCurrentAnchors(RectTransform.Axis.Vertical, _prefHeight);
+                  
+#if UNITY_EDITOR
+            _drivenTracker.Add(this, rectTransform, DrivenTransformProperties.SizeDeltaY);
+#endif
+        }
     }
 
     private void MeasureMainAxis()
@@ -175,6 +182,12 @@ public class FlexElement : UIBehaviour, IFlexNode
         {
             var rect = ((RectTransform)transform).rect;
             minSize = maxSize = horizontal ? rect.width : rect.height;
+
+            if ((horizontal && AutoSizeX) || (!horizontal && AutoSizeY))
+            {
+                minSize = 0;
+                maxSize = float.PositiveInfinity;
+            }
         }
         else
         {
@@ -185,9 +198,6 @@ public class FlexElement : UIBehaviour, IFlexNode
             minSize = (horizontal ? MinWidth : MinHeight).GetValueOrDefault(calculatedMinSize);
             maxSize = (horizontal ? MaxWidth : MaxHeight).GetValueOrDefault(float.PositiveInfinity);
         }
-
-        if (horizontal && OverflowX) maxSize = float.PositiveInfinity;
-        if (!horizontal && OverflowY) maxSize = float.PositiveInfinity;
 
         contentPrefSize = Mathf.Max(mainAxisPreferredSize, mainAxisMinSize);
         prefSize = Mathf.Clamp(horizontal
@@ -215,7 +225,6 @@ public class FlexElement : UIBehaviour, IFlexNode
         var prefMainSize = horizontal ? _contentPrefWidth : _contentPrefHeight;
 
         var growthAllowance = Mathf.Max(innerSize - prefMainSize, 0);
-
         var shrinkAllowance = Mathf.Max(prefMainSize - innerSize, 0);
 
         var actualMainSize = prefMainSize;
@@ -392,6 +401,12 @@ public class FlexElement : UIBehaviour, IFlexNode
         {
             var rect = ((RectTransform)transform).rect;
             minSize = maxSize = horizontal ? rect.height : rect.width;
+
+            if ((!horizontal && AutoSizeX) || (horizontal && AutoSizeY))
+            {
+                minSize = 0;
+                maxSize = float.PositiveInfinity;
+            }
         }
         else
         {
@@ -402,9 +417,6 @@ public class FlexElement : UIBehaviour, IFlexNode
             minSize = (horizontal ? MinHeight : MinWidth).GetValueOrDefault(calculatedMinSize);
             maxSize = (horizontal ? MaxHeight : MaxWidth).GetValueOrDefault(float.PositiveInfinity);
         }
-
-        if (horizontal && OverflowX) maxSize = float.PositiveInfinity;
-        if (!horizontal && OverflowY) maxSize = float.PositiveInfinity;
 
         contentPrefSize = Mathf.Max(crossAxisPreferredSize, crossAxisMinSize);
         prefSize = Mathf.Clamp(horizontal

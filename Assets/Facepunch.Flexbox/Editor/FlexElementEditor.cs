@@ -12,7 +12,7 @@ public class FlexElementEditor : Editor
     private SerializedProperty _grow;
     private SerializedProperty _shrink;
     private SerializedProperty _isAbsolute;
-    private SerializedProperty _overflowX, _overflowY;
+    private SerializedProperty _autoSizeX, _autoSizeY;
     private SerializedProperty _minWidth, _maxWidth;
     private SerializedProperty _minHeight, _maxHeight;
 
@@ -26,8 +26,8 @@ public class FlexElementEditor : Editor
         _grow = serializedObject.FindProperty("Grow");
         _shrink = serializedObject.FindProperty("Shrink");
         _isAbsolute = serializedObject.FindProperty("IsAbsolute");
-        _overflowX = serializedObject.FindProperty("OverflowX");
-        _overflowY = serializedObject.FindProperty("OverflowY");
+        _autoSizeX = serializedObject.FindProperty("AutoSizeX");
+        _autoSizeY = serializedObject.FindProperty("AutoSizeY");
         _minWidth = serializedObject.FindProperty("MinWidth");
         _maxWidth = serializedObject.FindProperty("MaxWidth");
         _minHeight = serializedObject.FindProperty("MinHeight");
@@ -45,24 +45,20 @@ public class FlexElementEditor : Editor
         EditorGUILayout.PropertyField(_gap);
         EditorGUILayout.PropertyField(_isAbsolute);
 
-        if (!_isAbsolute.hasMultipleDifferentValues && !_isAbsolute.boolValue)
+        if (!_isAbsolute.hasMultipleDifferentValues)
         {
-            EditorGUILayout.PropertyField(_overflowX);
-            EditorGUILayout.PropertyField(_overflowY);
-
-            EditorGUILayout.PropertyField(_grow);
-            EditorGUILayout.PropertyField(_shrink);
-            EditorGUILayout.PropertyField(_minWidth);
-
-            if (!_overflowX.hasMultipleDifferentValues && !_overflowX.boolValue)
+            if (_isAbsolute.boolValue)
             {
-                EditorGUILayout.PropertyField(_maxWidth);
+                EditorGUILayout.PropertyField(_autoSizeX);
+                EditorGUILayout.PropertyField(_autoSizeY);
             }
-
-            EditorGUILayout.PropertyField(_minHeight);
-
-            if (!_overflowY.hasMultipleDifferentValues && !_overflowY.boolValue)
+            else
             {
+                EditorGUILayout.PropertyField(_grow);
+                EditorGUILayout.PropertyField(_shrink);
+                EditorGUILayout.PropertyField(_minWidth);
+                EditorGUILayout.PropertyField(_maxWidth);
+                EditorGUILayout.PropertyField(_minHeight);
                 EditorGUILayout.PropertyField(_maxHeight);
             }
         }
