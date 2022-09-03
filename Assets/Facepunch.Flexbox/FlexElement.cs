@@ -406,7 +406,7 @@ public class FlexElement : UIBehaviour, IFlexNode
             var childMaxCross = horizontal ? childMaxHeight : childMaxWidth;
             var childPrefCross = horizontal ? childPreferredHeight : childPreferredWidth;
             var crossSize = stretchCross ? innerSize : childPrefCross;
-            var clampedCrossSize = Mathf.Clamp(crossSize, childMinCross, childMaxCross);
+            var clampedCrossSize = Mathf.Clamp(Mathf.Min(crossSize, innerSize), childMinCross, childMaxCross);
 
             var layoutMaxWidth = horizontal ? float.PositiveInfinity : clampedCrossSize;
             var layoutMaxHeight = horizontal ? clampedCrossSize : float.PositiveInfinity;
