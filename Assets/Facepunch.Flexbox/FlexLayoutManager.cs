@@ -42,7 +42,10 @@ public class FlexLayoutManager : MonoBehaviour
         {
             foreach (var element in _updatingElements)
             {
-                element.PerformLayout();
+                if (element != null)
+                {
+                    element.PerformLayout();
+                }
             }
         }
         finally
