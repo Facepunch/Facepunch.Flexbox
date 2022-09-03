@@ -143,9 +143,6 @@ public class FlexElement : UIBehaviour, IFlexNode
             child.GetCalculatedMaxSize(out var childMaxWidth, out var childMaxHeight);
             child.GetPreferredSize(out var childPreferredWidth, out var childPreferredHeight);
 
-            childPreferredWidth = Mathf.Clamp(childPreferredWidth, childMinWidth, childMaxWidth);
-            childPreferredHeight = Mathf.Clamp(childPreferredHeight, childMinHeight, childMaxHeight);
-
             var hasFixedWidth = !float.IsPositiveInfinity(childMaxWidth) && childMinWidth >= childMaxWidth;
             var hasFixedHeight = !float.IsPositiveInfinity(childMaxHeight) && childMinHeight >= childMaxHeight;
             var isFlexible = horizontal ? !hasFixedWidth : !hasFixedHeight;
@@ -193,9 +190,9 @@ public class FlexElement : UIBehaviour, IFlexNode
         if (!horizontal && OverflowY) maxSize = float.PositiveInfinity;
 
         contentPrefSize = Mathf.Max(mainAxisPreferredSize, mainAxisMinSize);
-        prefSize = Mathf.Max(horizontal
+        prefSize = Mathf.Clamp(horizontal
             ? Padding.left + contentPrefSize + Padding.right
-            : Padding.top + contentPrefSize + Padding.bottom, minSize);
+            : Padding.top + contentPrefSize + Padding.bottom, minSize, maxSize);
 
         _growSum = growSum;
         _shrinkSum = shrinkSum;
@@ -379,9 +376,6 @@ public class FlexElement : UIBehaviour, IFlexNode
             child.GetCalculatedMaxSize(out var childMaxWidth, out var childMaxHeight);
             child.GetPreferredSize(out var childPreferredWidth, out var childPreferredHeight);
 
-            childPreferredWidth = Mathf.Clamp(childPreferredWidth, childMinWidth, childMaxWidth);
-            childPreferredHeight = Mathf.Clamp(childPreferredHeight, childMinHeight, childMaxHeight);
-
             if (horizontal)
             {
                 crossAxisMinSize = Mathf.Max(crossAxisMinSize, childMinHeight);
@@ -413,9 +407,9 @@ public class FlexElement : UIBehaviour, IFlexNode
         if (!horizontal && OverflowY) maxSize = float.PositiveInfinity;
 
         contentPrefSize = Mathf.Max(crossAxisPreferredSize, crossAxisMinSize);
-        prefSize = Mathf.Max(horizontal
+        prefSize = Mathf.Clamp(horizontal
             ? Padding.top + contentPrefSize + Padding.bottom
-            : Padding.left + contentPrefSize + Padding.right, minSize);
+            : Padding.left + contentPrefSize + Padding.right, minSize, maxSize);
         
         if (!_isDirty && (minSize != oldMinSize || maxSize != oldMaxSize || contentPrefSize != oldContentPrefSize))
         {
