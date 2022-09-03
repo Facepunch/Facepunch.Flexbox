@@ -1,7 +1,7 @@
 ﻿using System.Collections.Generic;
 using UnityEngine;
 
-[ExecuteAlways]
+[ExecuteAlways, DefaultExecutionOrder(-100)]
 public class FlexLayoutManager : MonoBehaviour
 {
     public static FlexLayoutManager Instance { get; private set; }
@@ -42,8 +42,10 @@ public class FlexLayoutManager : MonoBehaviour
         {
             foreach (var element in _updatingElements)
             {
-                element.CalculateSizes();
-                element.PerformLayout();
+                if (element != null)
+                {
+                    element.PerformLayout();
+                }
             }
         }
         finally
@@ -71,6 +73,9 @@ public class FlexLayoutManager : MonoBehaviour
             return;
         }
 
-        Instance._dirtyElements.Add(element);
+        if (!Instance._dirtyElements.Contains(element))
+        {
+            Instance._dirtyElements.Add(element);
+        }
     }
 }
