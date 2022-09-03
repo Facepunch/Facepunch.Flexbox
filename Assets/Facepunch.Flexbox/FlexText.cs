@@ -64,10 +64,6 @@ public class FlexText : TMPro.TextMeshProUGUI, IFlexNode
 
     private void SetupTransform()
     {
-#if UNITY_EDITOR
-        _drivenTracker.Add(this, (RectTransform)transform, DrivenTransformProperties.Pivot | DrivenTransformProperties.AnchorMin | DrivenTransformProperties.AnchorMax);
-#endif
-
         var rt = (RectTransform)transform;
         rt.pivot = new Vector2(0, 1); // top left
         rt.anchorMin = new Vector2(0, 1); // top left

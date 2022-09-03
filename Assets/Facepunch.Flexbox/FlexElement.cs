@@ -8,6 +8,8 @@ using UnityEngine.EventSystems;
 [DisallowMultipleComponent]
 public class FlexElement : UIBehaviour, IFlexNode
 {
+    private static readonly List<IFlexNode> SizingChildren = new List<IFlexNode>();
+
     public FlexDirection FlexDirection = FlexDirection.Row;
     public FlexJustify JustifyContent = FlexJustify.Start;
     public FlexAlign AlignItems = FlexAlign.Stretch;
@@ -31,6 +33,7 @@ public class FlexElement : UIBehaviour, IFlexNode
     private float _contentPrefWidth, _contentPrefHeight;
     private int _growSum, _shrinkSum;
     private readonly List<IFlexNode> _children = new List<IFlexNode>();
+    private readonly List<float> _childSizes = new List<float>();
 
 #if UNITY_EDITOR
     private DrivenRectTransformTracker _drivenTracker = new DrivenRectTransformTracker();
@@ -214,74 +217,109 @@ public class FlexElement : UIBehaviour, IFlexNode
             : maxHeight - Padding.top - Padding.bottom;
         var prefMainSize = horizontal ? _contentPrefWidth : _contentPrefHeight;
 
-        var growSum = _growSum;
         var growthAllowance = Mathf.Max(innerSize - prefMainSize, 0);
 
-        var shrinkSum = _shrinkSum;
         var shrinkAllowance = Mathf.Max(prefMainSize - innerSize, 0);
 
         var actualMainSize = prefMainSize;
-        if (growSum > 0 && growthAllowance > 0) actualMainSize = innerSize;
-        else if (shrinkSum > 0 && shrinkAllowance > 0) actualMainSize = innerSize;
+        if (_growSum > 0 && growthAllowance > 0) actualMainSize = innerSize;
+        else if (_shrinkSum > 0 && shrinkAllowance > 0) actualMainSize = innerSize;
 
         //Debug.Log($"({name}) main setup: w={maxWidth} h={maxHeight} inner={innerSize} pref={prefMainSize} grow={growthAllowance} shrink={shrinkAllowance}", this);
-
-        var mainAxisOffset = GetMainAxisStart(horizontal, reversed);
+        
+        SizingChildren.Clear();
         foreach (var child in _children)
         {
-            child.GetCalculatedMinSize(out var childMinWidth, out var childMinHeight);
-            child.GetCalculatedMaxSize(out var childMaxWidth, out var childMaxHeight);
-            child.GetPreferredSize(out var childPreferredWidth, out var childPreferredHeight);
+            SizingChildren.Add(child);
+        }
 
-            var childMinMain = horizontal ? childMinWidth : childMinHeight;
-            var childMaxMain = horizontal ? childMaxWidth : childMaxHeight;
-            var childPrefMain = horizontal ? childPreferredWidth : childPreferredHeight;
-            var childFlexible = childMinMain < childMaxMain;
+        _childSizes.Clear();
+        while (SizingChildren.Exists(n => n != null))
+        {
+            var growSum = _growSum;
+            var shrinkSum = _shrinkSum;
 
-            var mainSize = Mathf.Max(childPrefMain, childMinMain);
-            if (growthAllowance > 0 && child.Grow > 0 && childFlexible)
+            for (var i = 0; i < SizingChildren.Count; i++)
             {
-                if (horizontal) TakeGrowth(ref mainSize, childMaxWidth);
-                else TakeGrowth(ref mainSize, childMaxHeight);
-
-                void TakeGrowth(ref float value, float maxValue)
+                var child = SizingChildren[i];
+                if (child == null)
                 {
-                    var growPotential = ((float)child.Grow / growSum) * growthAllowance;
-                    var growAmount = Mathf.Clamp(maxValue - value, 0, growPotential);
-                    value += growAmount;
-                    growthAllowance -= growAmount;
-                    growSum -= child.Grow;
+                    continue;
+                }
+
+                child.GetCalculatedMinSize(out var childMinWidth, out var childMinHeight);
+                child.GetCalculatedMaxSize(out var childMaxWidth, out var childMaxHeight);
+                child.GetPreferredSize(out var childPreferredWidth, out var childPreferredHeight);
+
+                var childMinMain = horizontal ? childMinWidth : childMinHeight;
+                var childMaxMain = horizontal ? childMaxWidth : childMaxHeight;
+                var childPrefMain = horizontal ? childPreferredWidth : childPreferredHeight;
+                var childFlexible = childMinMain < childMaxMain;
+
+                if (_childSizes.Count == i)
+                {
+                    var startingMainSize = Mathf.Max(childPrefMain, childMinMain);
+                    _childSizes.Add(startingMainSize);
+                }
+
+                var finishedFlexing = true;
+                var mainSize = _childSizes[i];
+
+                if (growthAllowance > 0 && child.Grow > 0 && childFlexible)
+                {
+                    finishedFlexing = TakeGrowth(ref mainSize, childMaxMain);
+
+                    bool TakeGrowth(ref float value, float maxValue)
+                    {
+                        var growPotential = ((float)child.Grow / growSum) * growthAllowance;
+                        var growAmount = Mathf.Clamp(maxValue - value, 0, growPotential);
+                        value += growAmount;
+                        growthAllowance -= growAmount;
+                        growSum -= child.Grow;
+                        return growAmount <= float.Epsilon;
+                    }
+                }
+                else if (shrinkAllowance > 0 && child.Shrink > 0 && childFlexible)
+                {
+                    finishedFlexing = TakeShrink(ref mainSize, childMinMain);
+
+                    bool TakeShrink(ref float value, float minValue)
+                    {
+                        var shrinkPotential = ((float)child.Shrink / shrinkSum) * shrinkAllowance;
+                        var shrinkAmount = Mathf.Clamp(value - minValue, 0, shrinkPotential);
+                        value -= shrinkAmount;
+                        shrinkAllowance -= shrinkAmount;
+                        shrinkSum -= child.Shrink;
+                        return shrinkAmount <= float.Epsilon;
+                    }
+                }
+
+                _childSizes[i] = mainSize;
+
+                if (finishedFlexing)
+                {
+                    SizingChildren[i] = null;
                 }
             }
-            
-            if (shrinkAllowance > 0 && child.Shrink > 0 && childFlexible)
-            {
-                if (horizontal) TakeShrink(ref mainSize, childMinWidth);
-                else TakeShrink(ref mainSize, childMinHeight);
+        }
 
-                void TakeShrink(ref float value, float minValue)
-                {
-                    var shrinkPotential = ((float)child.Shrink / shrinkSum) * shrinkAllowance;
-                    var shrinkAmount = Mathf.Clamp(value - minValue, 0, shrinkPotential);
-                    value -= shrinkAmount;
-                    shrinkAllowance -= shrinkAmount;
-                    shrinkSum -= child.Shrink;
-                }
-            }
+        var mainAxisOffset = GetMainAxisStart(horizontal, reversed);
+        for (var i = 0; i < _children.Count; i++)
+        {
+            var child = _children[i];
+            var mainSize = _childSizes[i];
 
-            var clampedMainSize = Mathf.Clamp(mainSize, childMinMain, childMaxMain);
+            if (horizontal) child.LayoutHorizontal(mainSize, float.PositiveInfinity);
+            else child.LayoutVertical(float.PositiveInfinity, mainSize);
 
             //Debug.Log($"({name}) main: min={childMinMain} max={childMaxMain} pref={childPrefMain} clamped={clampedMainSize}", child.Transform);
-
-            if (horizontal) child.LayoutHorizontal(clampedMainSize, float.PositiveInfinity);
-            else child.LayoutVertical(float.PositiveInfinity, clampedMainSize);
 
             var childRt = child.Transform;
 
             var childSizeDelta = childRt.sizeDelta;
             childRt.sizeDelta = horizontal
-                ? new Vector2(clampedMainSize, childSizeDelta.y)
-                : new Vector2(childSizeDelta.x, clampedMainSize);
+                ? new Vector2(mainSize, childSizeDelta.y)
+                : new Vector2(childSizeDelta.x, mainSize);
 
             var childAnchoredPos = childRt.anchoredPosition;
             childRt.anchoredPosition = horizontal
@@ -289,8 +327,8 @@ public class FlexElement : UIBehaviour, IFlexNode
                 : new Vector2(childAnchoredPos.x, mainAxisOffset);
 
             mainAxisOffset += horizontal
-                ? clampedMainSize + Gap
-                : -clampedMainSize - Gap;
+                ? mainSize + Gap
+                : -mainSize - Gap;
         }
 
         float GetMainAxisStart(bool isHorizontal, bool isReversed)
@@ -467,10 +505,6 @@ public class FlexElement : UIBehaviour, IFlexNode
     {
         if (!IsAbsolute)
         {
-#if UNITY_EDITOR
-            _drivenTracker.Add(this, (RectTransform)transform, DrivenTransformProperties.Pivot | DrivenTransformProperties.AnchorMin | DrivenTransformProperties.AnchorMax);
-#endif
-
             var rt = (RectTransform)transform;
             rt.pivot = new Vector2(0, 1); // top left
             rt.anchorMin = new Vector2(0, 1); // top left
