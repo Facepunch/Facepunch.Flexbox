@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.EventSystems;
 
@@ -29,6 +30,7 @@ public class FlexElement : UIBehaviour, IFlexNode
     private float _prefWidth, _prefHeight;
     private float _contentPrefWidth, _contentPrefHeight;
     private int _growSum, _shrinkSum;
+    private readonly List<IFlexNode> _children = new List<IFlexNode>();
 
 #if UNITY_EDITOR
     private DrivenRectTransformTracker _drivenTracker = new DrivenRectTransformTracker();
@@ -126,7 +128,7 @@ public class FlexElement : UIBehaviour, IFlexNode
         var growSum = 0;
         var shrinkSum = 0;
         var first = true;
-        foreach (var child in Children())
+        foreach (var child in _children)
         {
             if (child.IsDirty)
             {
@@ -225,7 +227,7 @@ public class FlexElement : UIBehaviour, IFlexNode
         //Debug.Log($"({name}) main setup: w={maxWidth} h={maxHeight} inner={innerSize} pref={prefMainSize} grow={growthAllowance} shrink={shrinkAllowance}", this);
 
         var mainAxisOffset = GetMainAxisStart(horizontal, reversed);
-        foreach (var child in Children(reversed))
+        foreach (var child in _children)
         {
             child.GetCalculatedMinSize(out var childMinWidth, out var childMinHeight);
             child.GetCalculatedMaxSize(out var childMaxWidth, out var childMaxHeight);
@@ -327,7 +329,7 @@ public class FlexElement : UIBehaviour, IFlexNode
         
         var crossAxisMinSize = 0f;
         var crossAxisPreferredSize = 0f;
-        foreach (var child in Children())
+        foreach (var child in _children)
         {
             if (child.IsDirty)
             {
@@ -386,7 +388,6 @@ public class FlexElement : UIBehaviour, IFlexNode
     private void LayoutCrossAxis(float maxWidth, float maxHeight)
     {
         var horizontal = IsHorizontal;
-        var reversed = IsReversed;
         var stretchCross = AlignItems == FlexAlign.Stretch;
 
         var innerSize = horizontal
@@ -395,7 +396,7 @@ public class FlexElement : UIBehaviour, IFlexNode
 
         //Debug.Log($"({name}) cross setup: w={maxWidth} h={maxHeight} inner={innerSize}", this);
 
-        foreach (var child in Children(reversed))
+        foreach (var child in _children)
         {
             child.GetCalculatedMinSize(out var childMinWidth, out var childMinHeight);
             child.GetCalculatedMaxSize(out var childMaxWidth, out var childMaxHeight);
@@ -462,15 +463,14 @@ public class FlexElement : UIBehaviour, IFlexNode
         return ref ifFalse;
     }
 
-    private FlexChildEnumerable Children(bool reversed = false)
-    {
-        return new FlexChildEnumerable(this, reversed);
-    }
-
     private void SetupTransform()
     {
         if (!IsAbsolute)
         {
+#if UNITY_EDITOR
+            _drivenTracker.Add(this, (RectTransform)transform, DrivenTransformProperties.Pivot | DrivenTransformProperties.AnchorMin | DrivenTransformProperties.AnchorMax);
+#endif
+
             var rt = (RectTransform)transform;
             rt.pivot = new Vector2(0, 1); // top left
             rt.anchorMin = new Vector2(0, 1); // top left
@@ -488,6 +488,20 @@ public class FlexElement : UIBehaviour, IFlexNode
 
     void IFlexNode.MeasureHorizontal()
     {
+#if UNITY_EDITOR
+        _drivenTracker.Clear();
+#endif
+
+        _children.Clear();
+        foreach (var child in new FlexChildEnumerable(this, IsReversed))
+        {
+            _children.Add(child);
+
+#if UNITY_EDITOR
+            _drivenTracker.Add(this, child.Transform, DrivenTransformProperties.All);
+#endif
+        }
+
         if (IsHorizontal) MeasureMainAxis();
         else MeasureCrossAxis();
     }
