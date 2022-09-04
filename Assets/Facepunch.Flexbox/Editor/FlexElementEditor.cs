@@ -45,6 +45,16 @@ public class FlexElementEditor : Editor
         EditorGUILayout.PropertyField(_gap);
         EditorGUILayout.PropertyField(_isAbsolute);
 
+        if (!serializedObject.isEditingMultipleObjects && !_isAbsolute.boolValue)
+        {
+            var elem = (FlexElement)serializedObject.targetObject;
+            var parentObj = elem.transform.parent;
+            if (parentObj == null || !parentObj.TryGetComponent<FlexElement>(out _))
+            {
+                EditorGUILayout.HelpBox("This element has no parent FlexElement, it should probably be marked as absolute.", MessageType.Warning);
+            }
+        }
+
         if (!_isAbsolute.hasMultipleDifferentValues)
         {
             if (_isAbsolute.boolValue)

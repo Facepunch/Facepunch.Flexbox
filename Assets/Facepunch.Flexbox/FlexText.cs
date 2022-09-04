@@ -5,11 +5,16 @@
 [DisallowMultipleComponent]
 public class FlexText : TMPro.TextMeshProUGUI, IFlexNode
 {
-    [Min(0)]
+    [Min(0), Tooltip("How much this flex element should grow relative to its siblings.")]
     public int Grow = 1;
-    [Min(0)]
+
+    [Min(0), Tooltip("How much this flex element should shrink relative to its siblings.")]
     public int Shrink = 1;
+
+    [Tooltip("The minimum allowed dimensions of this flex element.")]
     public FlexLength MinWidth, MaxWidth;
+
+    [Tooltip("The maximum allowed dimensions of this flex element.")]
     public FlexLength MinHeight, MaxHeight;
 
     private bool _isDirty;

@@ -1,9 +1,12 @@
 {
-    "name": "Facepunch.Flexbox",
+    "name": "Facepunch.Flexbox.Editor",
     "references": [
-        "Unity.TextMeshPro"
+        "Unity.TextMeshPro.Editor",
+        "Facepunch.Flexbox"
     ],
-    "includePlatforms": [],
+    "includePlatforms": [
+        "Editor"
+    ],
     "excludePlatforms": [],
     "allowUnsafeCode": false,
     "overrideReferences": false,

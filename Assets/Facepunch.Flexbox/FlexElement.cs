@@ -10,19 +10,37 @@ public class FlexElement : UIBehaviour, IFlexNode
 {
     private static readonly List<IFlexNode> SizingChildren = new List<IFlexNode>();
 
+    [Tooltip("The direction to layout children in. This determines which axis is the main axis.")]
     public FlexDirection FlexDirection = FlexDirection.Row;
+
+    [Tooltip("Where to start laying out children on the main axis.")]
     public FlexJustify JustifyContent = FlexJustify.Start;
+
+    [Tooltip("How to align child flex elements on the cross axis.")]
     public FlexAlign AlignItems = FlexAlign.Stretch;
+
+    [Tooltip("Spacing to add from this elements borders to where children are laid out.")]
     public RectOffset Padding;
-    [Min(0)]
+
+    [Min(0), Tooltip("Spacing to add between each child flex item.")]
     public float Gap = 0;
-    [Min(0)]
+
+    [Min(0), Tooltip("How much this flex element should grow relative to its siblings.")]
     public int Grow = 0;
-    [Min(0)]
+
+    [Min(0), Tooltip("How much this flex element should shrink relative to its siblings.")]
     public int Shrink = 1;
+
+    [Tooltip("Absolute elements act as the root container for any number of flex elements.")]
     public bool IsAbsolute;
+
+    [Tooltip("Automatically resize an absolute element to match the size of its children.")]
     public bool AutoSizeX, AutoSizeY;
+
+    [Tooltip("The minimum allowed dimensions of this flex element.")]
     public FlexLength MinWidth, MaxWidth;
+
+    [Tooltip("The maximum allowed dimensions of this flex element.")]
     public FlexLength MinHeight, MaxHeight;
 
     private bool _isDirty;
@@ -314,7 +332,7 @@ public class FlexElement : UIBehaviour, IFlexNode
         {
             var child = _children[i];
             var mainSize = _childSizes[i];
-
+            
             if (horizontal) child.LayoutHorizontal(mainSize, float.PositiveInfinity);
             else child.LayoutVertical(float.PositiveInfinity, mainSize);
 
@@ -382,7 +400,6 @@ public class FlexElement : UIBehaviour, IFlexNode
             }
 
             child.GetCalculatedMinSize(out var childMinWidth, out var childMinHeight);
-            child.GetCalculatedMaxSize(out var childMaxWidth, out var childMaxHeight);
             child.GetPreferredSize(out var childPreferredWidth, out var childPreferredHeight);
 
             if (horizontal)
@@ -454,6 +471,7 @@ public class FlexElement : UIBehaviour, IFlexNode
 
             var layoutMaxWidth = horizontal ? float.PositiveInfinity : clampedCrossSize;
             var layoutMaxHeight = horizontal ? clampedCrossSize : float.PositiveInfinity;
+            
             if (horizontal) child.LayoutVertical(layoutMaxWidth, layoutMaxHeight);
             else child.LayoutHorizontal(layoutMaxWidth, layoutMaxHeight);
 
