@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.EventSystems;
+using UnityEngine.Profiling;
 
 [ExecuteAlways]
 [RequireComponent(typeof(RectTransform))]
@@ -76,14 +77,17 @@ public class FlexElement : UIBehaviour, IFlexNode
         {
             return;
         }
-        
-#if !UNITY_EDITOR
-        if (_isDirty)
-        {
-            return;
-        }
+
+#if UNITY_EDITOR
+        if (Application.isPlaying)
 #endif
-        
+        {
+            if (_isDirty)
+            {
+                return;
+            }
+        }
+
         _isDirty = true;
 
 #if UNITY_EDITOR
@@ -138,18 +142,13 @@ public class FlexElement : UIBehaviour, IFlexNode
 
     private void MeasureMainAxis()
     {
+        Profiler.BeginSample(nameof(MeasureMainAxis), this);
+
         var horizontal = IsHorizontal;
         ref var minSize = ref Pick(horizontal, ref _minWidth, ref _minHeight);
         ref var maxSize = ref Pick(horizontal, ref _maxWidth, ref _maxHeight);
         ref var contentPrefSize = ref Pick(horizontal, ref _contentPrefWidth, ref _contentPrefHeight);
         ref var prefSize = ref Pick(horizontal, ref _prefWidth, ref _prefHeight);
-
-        var oldMinSize = minSize;
-        var oldMaxSize = maxSize;
-        var oldContentPrefSize = contentPrefSize;
-        var oldPrefSize = prefSize;
-        var oldGrowSum = _growSum;
-        var oldShrinkSum = _shrinkSum;
 
         var mainAxisMinSize = 0f;
         var mainAxisPreferredSize = 0f;
@@ -225,15 +224,13 @@ public class FlexElement : UIBehaviour, IFlexNode
         _growSum = growSum;
         _shrinkSum = shrinkSum;
 
-        if (!_isDirty && (minSize != oldMinSize || maxSize != oldMaxSize || contentPrefSize != oldContentPrefSize ||
-            prefSize != oldPrefSize || _growSum != oldGrowSum || _shrinkSum != oldShrinkSum))
-        {
-            SetLayoutDirty();
-        }
+        Profiler.EndSample();
     }
 
     private void LayoutMainAxis(float maxWidth, float maxHeight)
     {
+        Profiler.BeginSample(nameof(LayoutMainAxis), this);
+
         var horizontal = IsHorizontal;
         var reversed = IsReversed;
 
@@ -355,6 +352,8 @@ public class FlexElement : UIBehaviour, IFlexNode
                 : -mainSize - Gap;
         }
 
+        Profiler.EndSample();
+
         float GetMainAxisStart(bool isHorizontal, bool isReversed)
         {
             switch (JustifyContent)
@@ -379,16 +378,14 @@ public class FlexElement : UIBehaviour, IFlexNode
 
     private void MeasureCrossAxis()
     {
+        Profiler.BeginSample(nameof(MeasureCrossAxis), this);
+
         var horizontal = IsHorizontal;
         ref var minSize = ref Pick(horizontal, ref _minHeight, ref _minWidth);
         ref var maxSize = ref Pick(horizontal, ref _maxHeight, ref _maxWidth);
         ref var contentPrefSize = ref Pick(horizontal, ref _contentPrefHeight, ref _contentPrefWidth);
         ref var prefSize = ref Pick(horizontal, ref _prefHeight, ref _prefWidth);
 
-        var oldMinSize = minSize;
-        var oldMaxSize = maxSize;
-        var oldContentPrefSize = contentPrefSize;
-        
         var crossAxisMinSize = 0f;
         var crossAxisPreferredSize = 0f;
         foreach (var child in _children)
@@ -439,15 +436,14 @@ public class FlexElement : UIBehaviour, IFlexNode
         prefSize = Mathf.Clamp(horizontal
             ? Padding.top + contentPrefSize + Padding.bottom
             : Padding.left + contentPrefSize + Padding.right, minSize, maxSize);
-        
-        if (!_isDirty && (minSize != oldMinSize || maxSize != oldMaxSize || contentPrefSize != oldContentPrefSize))
-        {
-            SetLayoutDirty();
-        }
+
+        Profiler.EndSample();
     }
 
     private void LayoutCrossAxis(float maxWidth, float maxHeight)
     {
+        Profiler.BeginSample(nameof(LayoutCrossAxis), this);
+
         var horizontal = IsHorizontal;
         var stretchCross = AlignItems == FlexAlign.Stretch;
 
@@ -491,6 +487,8 @@ public class FlexElement : UIBehaviour, IFlexNode
                 ? new Vector2(childAnchoredPos.x, crossAxis)
                 : new Vector2(crossAxis, childAnchoredPos.y);
         }
+
+        Profiler.EndSample();
 
         float GetCrossAxis(bool isHorizontal, float childWidth, float childHeight)
         {

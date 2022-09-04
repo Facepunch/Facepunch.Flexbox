@@ -1,4 +1,5 @@
 ﻿using UnityEngine;
+using UnityEngine.Profiling;
 
 [ExecuteAlways]
 [RequireComponent(typeof(RectTransform))]
@@ -97,6 +98,8 @@ public class FlexText : TMPro.TextMeshProUGUI, IFlexNode
     
     void IFlexNode.MeasureHorizontal()
     {
+        Profiler.BeginSample(nameof(IFlexNode.MeasureHorizontal), this);
+
         _minWidth = MinWidth.GetValueOrDefault(0);
         _maxWidth = MaxWidth.GetValueOrDefault(float.PositiveInfinity);
 
@@ -106,6 +109,8 @@ public class FlexText : TMPro.TextMeshProUGUI, IFlexNode
         var preferredSize = GetPreferredValues(_maxWidth, _maxHeight);
         _preferredWidth = Mathf.Clamp(preferredSize.x, _minWidth, _maxWidth);
         _preferredHeight = Mathf.Clamp(preferredSize.y, _minHeight, _maxHeight);
+
+        Profiler.EndSample();
     }
 
     void IFlexNode.LayoutHorizontal(float maxWidth, float maxHeight)
@@ -114,6 +119,8 @@ public class FlexText : TMPro.TextMeshProUGUI, IFlexNode
 
     void IFlexNode.MeasureVertical()
     {
+        Profiler.BeginSample(nameof(IFlexNode.MeasureVertical), this);
+
         var rt = (RectTransform)transform;
         var size = rt.sizeDelta;
         //Debug.Log($"text vertical w={size.x}");
@@ -121,6 +128,8 @@ public class FlexText : TMPro.TextMeshProUGUI, IFlexNode
         var preferredSize = GetPreferredValues(Mathf.Min(size.x, _maxWidth), float.PositiveInfinity);
         _preferredWidth = Mathf.Clamp(preferredSize.x, _minWidth, _maxWidth);
         _preferredHeight = Mathf.Clamp(preferredSize.y, _minHeight, _maxHeight);
+
+        Profiler.EndSample();
     }
 
     void IFlexNode.LayoutVertical(float maxWidth, float maxHeight)
