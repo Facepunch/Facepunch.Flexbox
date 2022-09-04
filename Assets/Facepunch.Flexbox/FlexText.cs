@@ -65,6 +65,8 @@ public class FlexText : TMPro.TextMeshProUGUI, IFlexNode
     private void SetupTransform()
     {
         var rt = (RectTransform)transform;
+        rt.localScale = Vector3.one;
+        rt.localRotation = Quaternion.identity;
         rt.pivot = new Vector2(0, 1); // top left
         rt.anchorMin = new Vector2(0, 1); // top left
         rt.anchorMax = new Vector2(0, 1); // top left
