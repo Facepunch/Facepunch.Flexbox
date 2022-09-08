@@ -9,6 +9,7 @@ public interface IFlexNode
 
     int Grow { get; }
     int Shrink { get; }
+    FlexAlignSelf AlignSelf { get; }
 
     void SetLayoutDirty(bool force = false);
 

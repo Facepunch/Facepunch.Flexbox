@@ -12,6 +12,9 @@ public class FlexText : TMPro.TextMeshProUGUI, IFlexNode
     [Min(0), Tooltip("How much this flex element should shrink relative to its siblings.")]
     public int Shrink = 1;
 
+    [Tooltip("Optionally override the parent's cross axis alignment for this element.")]
+    public FlexAlignSelf AlignSelf;
+
     [Tooltip("The minimum allowed dimensions of this flex element.")]
     public FlexLength MinWidth, MaxWidth;
 
@@ -28,11 +31,12 @@ public class FlexText : TMPro.TextMeshProUGUI, IFlexNode
     private DrivenRectTransformTracker _drivenTracker = new DrivenRectTransformTracker();
 #endif
 
-    protected override void Awake()
+    protected override void OnEnable()
     {
-        base.Awake();
+        base.OnEnable();
 
         SetupTransform();
+        SetLayoutDirty();
     }
 
     protected override void OnDisable()
@@ -46,17 +50,6 @@ public class FlexText : TMPro.TextMeshProUGUI, IFlexNode
 
     public override void SetLayoutDirty()
     {
-#if !UNITY_EDITOR
-        if (_isDirty)
-        {
-            return;
-        }
-#endif
-
-#if UNITY_EDITOR
-        SetupTransform();
-#endif
-
         _isDirty = true;
 
         base.SetLayoutDirty();
@@ -85,6 +78,7 @@ public class FlexText : TMPro.TextMeshProUGUI, IFlexNode
     bool IFlexNode.IsDirty => _isDirty;
     int IFlexNode.Grow => Grow;
     int IFlexNode.Shrink => Shrink;
+    FlexAlignSelf IFlexNode.AlignSelf => AlignSelf;
 
     void IFlexNode.SetLayoutDirty(bool force)
     {
@@ -115,6 +109,7 @@ public class FlexText : TMPro.TextMeshProUGUI, IFlexNode
 
     void IFlexNode.LayoutHorizontal(float maxWidth, float maxHeight)
     {
+        SetupTransform();
     }
 
     void IFlexNode.MeasureVertical()

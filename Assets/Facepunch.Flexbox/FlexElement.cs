@@ -29,6 +29,9 @@ public class FlexElement : UIBehaviour, IFlexNode
     [Min(0), Tooltip("How much this flex element should grow relative to its siblings.")]
     public int Grow = 0;
 
+    [Tooltip("Optionally override the parent's cross axis alignment for this element.")]
+    public FlexAlignSelf AlignSelf;
+
     [Min(0), Tooltip("How much this flex element should shrink relative to its siblings.")]
     public int Shrink = 1;
 
@@ -61,16 +64,6 @@ public class FlexElement : UIBehaviour, IFlexNode
     private bool IsHorizontal => FlexDirection == FlexDirection.Row || FlexDirection == FlexDirection.RowReverse;
     private bool IsReversed => FlexDirection == FlexDirection.RowReverse || FlexDirection == FlexDirection.ColumnReverse;
 
-    protected override void Awake()
-    {
-        if (Padding == null)
-        {
-            Padding = new RectOffset();
-        }
-
-        SetupTransform();
-    }
-
     public void SetLayoutDirty(bool force = false)
     {
         if (!force && (_isDoingLayout || !IsActive()))
@@ -78,30 +71,16 @@ public class FlexElement : UIBehaviour, IFlexNode
             return;
         }
 
-#if UNITY_EDITOR
-        if (Application.isPlaying)
-#endif
-        {
-            if (_isDirty)
-            {
-                return;
-            }
-        }
-
         _isDirty = true;
 
-#if UNITY_EDITOR
-        SetupTransform();
-#endif
-
         var parent = transform.parent;
-        if (parent == null || !parent.TryGetComponent<IFlexNode>(out var parentNode) || !parentNode.IsActive)
+        if (parent == null || !parent.TryGetComponent<IFlexNode>(out var parentNode))
         {
             FlexLayoutManager.EnqueueLayout(this);
         }
         else
         {
-            parentNode.SetLayoutDirty();
+            parentNode.SetLayoutDirty(force);
         }
     }
 
@@ -119,24 +98,32 @@ public class FlexElement : UIBehaviour, IFlexNode
         node.MeasureVertical();
         node.LayoutVertical(AutoSizeX ? _prefWidth : width, AutoSizeY ? _prefHeight : height);
 
-        if (AutoSizeX)
+        _isDoingLayout = true;
+        try
         {
-            //Debug.Log($"w={_prefWidth}");
-            rectTransform.SetSizeWithCurrentAnchors(RectTransform.Axis.Horizontal, _prefWidth);
-            
-#if UNITY_EDITOR
-            _drivenTracker.Add(this, rectTransform, DrivenTransformProperties.SizeDeltaX);
-#endif
-        }
+            if (AutoSizeX)
+            {
+                //Debug.Log($"w={_prefWidth}");
+                rectTransform.SetSizeWithCurrentAnchors(RectTransform.Axis.Horizontal, _prefWidth);
 
-        if (AutoSizeY)
-        {
-            //Debug.Log($"h={_prefHeight}");
-            rectTransform.SetSizeWithCurrentAnchors(RectTransform.Axis.Vertical, _prefHeight);
-                  
 #if UNITY_EDITOR
-            _drivenTracker.Add(this, rectTransform, DrivenTransformProperties.SizeDeltaY);
+                _drivenTracker.Add(this, rectTransform, DrivenTransformProperties.SizeDeltaX);
 #endif
+            }
+
+            if (AutoSizeY)
+            {
+                //Debug.Log($"h={_prefHeight}");
+                rectTransform.SetSizeWithCurrentAnchors(RectTransform.Axis.Vertical, _prefHeight);
+
+#if UNITY_EDITOR
+                _drivenTracker.Add(this, rectTransform, DrivenTransformProperties.SizeDeltaY);
+#endif
+            }
+        }
+        finally
+        {
+            _isDoingLayout = false;
         }
     }
 
@@ -445,7 +432,6 @@ public class FlexElement : UIBehaviour, IFlexNode
         Profiler.BeginSample(nameof(LayoutCrossAxis), this);
 
         var horizontal = IsHorizontal;
-        var stretchCross = AlignItems == FlexAlign.Stretch;
 
         var innerSize = horizontal
             ? maxHeight - Padding.top - Padding.bottom
@@ -459,10 +445,11 @@ public class FlexElement : UIBehaviour, IFlexNode
             child.GetCalculatedMaxSize(out var childMaxWidth, out var childMaxHeight);
             child.GetPreferredSize(out var childPreferredWidth, out var childPreferredHeight);
 
+            var childAlign = child.AlignSelf.GetValueOrDefault(AlignItems);
             var childMinCross = horizontal ? childMinHeight : childMinWidth;
             var childMaxCross = horizontal ? childMaxHeight : childMaxWidth;
             var childPrefCross = horizontal ? childPreferredHeight : childPreferredWidth;
-            var crossSize = stretchCross ? innerSize : childPrefCross;
+            var crossSize = childAlign == FlexAlign.Stretch ? innerSize : childPrefCross;
             var clampedCrossSize = Mathf.Clamp(Mathf.Min(crossSize, innerSize), childMinCross, childMaxCross);
 
             var layoutMaxWidth = horizontal ? float.PositiveInfinity : clampedCrossSize;
@@ -473,7 +460,7 @@ public class FlexElement : UIBehaviour, IFlexNode
 
             //Debug.Log($"({name}) cross: min={childMinCross} max={childMaxCross} pref={childPrefCross} clamped={clampedCrossSize}", child.Transform);
 
-            var crossAxis = GetCrossAxis(horizontal, layoutMaxWidth, layoutMaxHeight);
+            var crossAxis = GetCrossAxis(childAlign, horizontal, layoutMaxWidth, layoutMaxHeight);
 
             var childRt = child.Transform;
             
@@ -490,9 +477,9 @@ public class FlexElement : UIBehaviour, IFlexNode
 
         Profiler.EndSample();
 
-        float GetCrossAxis(bool isHorizontal, float childWidth, float childHeight)
+        float GetCrossAxis(FlexAlign align, bool isHorizontal, float childWidth, float childHeight)
         {
-            switch (AlignItems)
+            switch (align)
             {
                 case FlexAlign.Start:
                 case FlexAlign.Stretch:
@@ -543,6 +530,7 @@ public class FlexElement : UIBehaviour, IFlexNode
     bool IFlexNode.IsDirty => _isDirty;
     int IFlexNode.Grow => Grow;
     int IFlexNode.Shrink => Shrink;
+    FlexAlignSelf IFlexNode.AlignSelf => AlignSelf;
 
     void IFlexNode.MeasureHorizontal()
     {
@@ -567,6 +555,8 @@ public class FlexElement : UIBehaviour, IFlexNode
     void IFlexNode.LayoutHorizontal(float maxWidth, float maxHeight)
     {
         _isDoingLayout = true;
+        
+        SetupTransform();
 
         try
         {
@@ -621,7 +611,16 @@ public class FlexElement : UIBehaviour, IFlexNode
     }
     #endregion
 
-    protected override void OnEnable() => SetLayoutDirty();
+    protected override void OnEnable()
+    {
+        if (Padding == null)
+        {
+            Padding = new RectOffset();
+        }
+
+        SetupTransform();
+        SetLayoutDirty(true);
+    }
 
     protected override void OnDisable()
     {

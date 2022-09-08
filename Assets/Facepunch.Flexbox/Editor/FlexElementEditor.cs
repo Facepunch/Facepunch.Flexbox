@@ -1,4 +1,5 @@
 ﻿using UnityEditor;
+using UnityEngine;
 
 [CustomEditor(typeof(FlexElement))]
 [CanEditMultipleObjects]
@@ -11,6 +12,7 @@ public class FlexElementEditor : Editor
     private SerializedProperty _gap;
     private SerializedProperty _grow;
     private SerializedProperty _shrink;
+    private SerializedProperty _alignSelf;
     private SerializedProperty _isAbsolute;
     private SerializedProperty _autoSizeX, _autoSizeY;
     private SerializedProperty _minWidth, _maxWidth;
@@ -25,6 +27,7 @@ public class FlexElementEditor : Editor
         _gap = serializedObject.FindProperty("Gap");
         _grow = serializedObject.FindProperty("Grow");
         _shrink = serializedObject.FindProperty("Shrink");
+        _alignSelf = serializedObject.FindProperty("AlignSelf");
         _isAbsolute = serializedObject.FindProperty("IsAbsolute");
         _autoSizeX = serializedObject.FindProperty("AutoSizeX");
         _autoSizeY = serializedObject.FindProperty("AutoSizeY");
@@ -38,11 +41,15 @@ public class FlexElementEditor : Editor
     {
         serializedObject.Update();
 
+        EditorGUILayout.LabelField("Layout", EditorStyles.boldLabel);
         EditorGUILayout.PropertyField(_flexDirection);
         EditorGUILayout.PropertyField(_justifyContent);
         EditorGUILayout.PropertyField(_alignItems);
         EditorGUILayout.PropertyField(_padding);
         EditorGUILayout.PropertyField(_gap);
+
+        EditorGUILayout.Space(5);
+        EditorGUILayout.LabelField("Behavior", EditorStyles.boldLabel);
         EditorGUILayout.PropertyField(_isAbsolute);
 
         if (!serializedObject.isEditingMultipleObjects && !_isAbsolute.boolValue)
@@ -66,6 +73,7 @@ public class FlexElementEditor : Editor
             {
                 EditorGUILayout.PropertyField(_grow);
                 EditorGUILayout.PropertyField(_shrink);
+                EditorGUILayout.PropertyField(_alignSelf);
                 EditorGUILayout.PropertyField(_minWidth);
                 EditorGUILayout.PropertyField(_maxWidth);
                 EditorGUILayout.PropertyField(_minHeight);
