@@ -136,6 +136,9 @@ public class FlexElement : UIBehaviour, IFlexNode
         ref var maxSize = ref Pick(horizontal, ref _maxWidth, ref _maxHeight);
         ref var contentPrefSize = ref Pick(horizontal, ref _contentPrefWidth, ref _contentPrefHeight);
         ref var prefSize = ref Pick(horizontal, ref _prefWidth, ref _prefHeight);
+        var padding = horizontal
+            ? Padding.left + Padding.right
+            : Padding.top + Padding.bottom;
 
         var mainAxisMinSize = 0f;
         var mainAxisPreferredSize = 0f;
@@ -195,18 +198,13 @@ public class FlexElement : UIBehaviour, IFlexNode
         }
         else
         {
-            var calculatedMinSize = horizontal
-                ? Padding.left + mainAxisMinSize + Padding.right
-                : Padding.top + mainAxisMinSize + Padding.bottom;
-
-            minSize = (horizontal ? MinWidth : MinHeight).GetValueOrDefault(calculatedMinSize);
+            minSize = (horizontal ? MinWidth : MinHeight).GetValueOrDefault(mainAxisMinSize + padding);
             maxSize = (horizontal ? MaxWidth : MaxHeight).GetValueOrDefault(float.PositiveInfinity);
+            if (minSize > maxSize) minSize = maxSize;
         }
 
         contentPrefSize = Mathf.Max(mainAxisPreferredSize, mainAxisMinSize);
-        prefSize = Mathf.Clamp(horizontal
-            ? Padding.left + contentPrefSize + Padding.right
-            : Padding.top + contentPrefSize + Padding.bottom, minSize, maxSize);
+        prefSize = Mathf.Clamp(contentPrefSize + padding, minSize, maxSize);
 
         _growSum = growSum;
         _shrinkSum = shrinkSum;
@@ -372,6 +370,9 @@ public class FlexElement : UIBehaviour, IFlexNode
         ref var maxSize = ref Pick(horizontal, ref _maxHeight, ref _maxWidth);
         ref var contentPrefSize = ref Pick(horizontal, ref _contentPrefHeight, ref _contentPrefWidth);
         ref var prefSize = ref Pick(horizontal, ref _prefHeight, ref _prefWidth);
+        var padding = horizontal
+            ? Padding.left + Padding.right
+            : Padding.top + Padding.bottom;
 
         var crossAxisMinSize = 0f;
         var crossAxisPreferredSize = 0f;
@@ -411,18 +412,13 @@ public class FlexElement : UIBehaviour, IFlexNode
         }
         else
         {
-            var calculatedMinSize = horizontal
-                ? Padding.top + crossAxisMinSize + Padding.bottom
-                : Padding.right + crossAxisMinSize + Padding.right;
-
-            minSize = (horizontal ? MinHeight : MinWidth).GetValueOrDefault(calculatedMinSize);
+            minSize = (horizontal ? MinHeight : MinWidth).GetValueOrDefault(crossAxisMinSize + padding);
             maxSize = (horizontal ? MaxHeight : MaxWidth).GetValueOrDefault(float.PositiveInfinity);
+            if (minSize > maxSize) minSize = maxSize;
         }
 
         contentPrefSize = Mathf.Max(crossAxisPreferredSize, crossAxisMinSize);
-        prefSize = Mathf.Clamp(horizontal
-            ? Padding.top + contentPrefSize + Padding.bottom
-            : Padding.left + contentPrefSize + Padding.right, minSize, maxSize);
+        prefSize = Mathf.Clamp(contentPrefSize + padding, minSize, maxSize);
 
         Profiler.EndSample();
     }
