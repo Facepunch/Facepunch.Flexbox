@@ -132,6 +132,14 @@ public class FlexText : TMPro.TextMeshProUGUI, IFlexNode
         _isDirty = false;
     }
 
+    void IFlexNode.GetScale(out float scaleX, out float scaleY)
+    {
+        var rectTransform = (RectTransform)transform;
+        var localScale = rectTransform.localScale;
+        scaleX = localScale.x;
+        scaleY = localScale.y;
+    }
+
     void IFlexNode.GetCalculatedMinSize(out float minWidth, out float minHeight)
     {
         minWidth = _minWidth;

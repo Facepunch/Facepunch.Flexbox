@@ -18,6 +18,7 @@ public interface IFlexNode
     void MeasureVertical();
     void LayoutVertical(float maxWidth, float maxHeight);
 
+    void GetScale(out float scaleX, out float scaleY);
     void GetCalculatedMinSize(out float minWidth, out float minHeight);
     void GetCalculatedMaxSize(out float maxWidth, out float maxHeight);
     void GetPreferredSize(out float preferredWidth, out float preferredHeight);

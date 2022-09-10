@@ -58,6 +58,11 @@ public class FlexElement : UIBehaviour, IFlexNode
     private readonly List<float> _childSizes = new List<float>();
 
 #if UNITY_EDITOR
+    private const DrivenTransformProperties ControlledProperties = DrivenTransformProperties.AnchoredPosition |
+                                                                   DrivenTransformProperties.SizeDelta |
+                                                                   DrivenTransformProperties.Anchors |
+                                                                   DrivenTransformProperties.Pivot |
+                                                                   DrivenTransformProperties.Rotation;
     private DrivenRectTransformTracker _drivenTracker = new DrivenRectTransformTracker();
 #endif
 
@@ -153,6 +158,7 @@ public class FlexElement : UIBehaviour, IFlexNode
                 else child.MeasureVertical();
             }
 
+            child.GetScale(out var childScaleX, out var childScaleY);
             child.GetCalculatedMinSize(out var childMinWidth, out var childMinHeight);
             child.GetCalculatedMaxSize(out var childMaxWidth, out var childMaxHeight);
             child.GetPreferredSize(out var childPreferredWidth, out var childPreferredHeight);
@@ -170,13 +176,13 @@ public class FlexElement : UIBehaviour, IFlexNode
             var gap = first ? 0f : Gap;
             if (horizontal)
             {
-                mainAxisMinSize += childMinWidth + gap;
-                mainAxisPreferredSize += childPreferredWidth + gap;
+                mainAxisMinSize += (childMinWidth * childScaleX) + gap;
+                mainAxisPreferredSize += (childPreferredWidth * childScaleX) + gap;
             }
             else
             {
-                mainAxisMinSize += childMinHeight + gap;
-                mainAxisPreferredSize += childPreferredHeight + gap;
+                mainAxisMinSize += (childMinHeight * childScaleY) + gap;
+                mainAxisPreferredSize += (childPreferredHeight * childScaleY) + gap;
             }
 
             if (first)
@@ -383,19 +389,20 @@ public class FlexElement : UIBehaviour, IFlexNode
                 if (horizontal) child.MeasureVertical();
                 else child.MeasureHorizontal();
             }
-
+            
+            child.GetScale(out var childScaleX, out var childScaleY);
             child.GetCalculatedMinSize(out var childMinWidth, out var childMinHeight);
             child.GetPreferredSize(out var childPreferredWidth, out var childPreferredHeight);
 
             if (horizontal)
             {
-                crossAxisMinSize = Mathf.Max(crossAxisMinSize, childMinHeight);
-                crossAxisPreferredSize = Mathf.Max(crossAxisPreferredSize, childPreferredHeight);
+                crossAxisMinSize = Mathf.Max(crossAxisMinSize, childMinHeight * childScaleY);
+                crossAxisPreferredSize = Mathf.Max(crossAxisPreferredSize, childPreferredHeight * childScaleY);
             }
             else
             {
-                crossAxisMinSize = Mathf.Max(crossAxisMinSize, childMinWidth);
-                crossAxisPreferredSize = Mathf.Max(crossAxisPreferredSize, childPreferredWidth);
+                crossAxisMinSize = Mathf.Max(crossAxisMinSize, childMinWidth * childScaleX);
+                crossAxisPreferredSize = Mathf.Max(crossAxisPreferredSize, childPreferredWidth * childScaleX);
             }
         }
 
@@ -437,6 +444,7 @@ public class FlexElement : UIBehaviour, IFlexNode
 
         foreach (var child in _children)
         {
+            child.GetScale(out var childScaleX, out var childScaleY);
             child.GetCalculatedMinSize(out var childMinWidth, out var childMinHeight);
             child.GetCalculatedMaxSize(out var childMaxWidth, out var childMaxHeight);
             child.GetPreferredSize(out var childPreferredWidth, out var childPreferredHeight);
@@ -447,7 +455,7 @@ public class FlexElement : UIBehaviour, IFlexNode
             var childPrefCross = horizontal ? childPreferredHeight : childPreferredWidth;
             var crossSize = childAlign == FlexAlign.Stretch ? innerSize : childPrefCross;
             var clampedCrossSize = Mathf.Clamp(Mathf.Min(crossSize, innerSize), childMinCross, childMaxCross);
-
+            
             var layoutMaxWidth = horizontal ? float.PositiveInfinity : clampedCrossSize;
             var layoutMaxHeight = horizontal ? clampedCrossSize : float.PositiveInfinity;
             
@@ -456,7 +464,7 @@ public class FlexElement : UIBehaviour, IFlexNode
 
             //Debug.Log($"({name}) cross: min={childMinCross} max={childMaxCross} pref={childPrefCross} clamped={clampedCrossSize}", child.Transform);
 
-            var crossAxis = GetCrossAxis(childAlign, horizontal, layoutMaxWidth, layoutMaxHeight);
+            var crossAxis = GetCrossAxis(childAlign, horizontal, layoutMaxWidth * childScaleX, layoutMaxHeight * childScaleY);
 
             var childRt = child.Transform;
             
@@ -511,7 +519,6 @@ public class FlexElement : UIBehaviour, IFlexNode
         if (!IsAbsolute)
         {
             var rt = (RectTransform)transform;
-            rt.localScale = Vector3.one;
             rt.localRotation = Quaternion.identity;
             rt.pivot = new Vector2(0, 1); // top left
             rt.anchorMin = new Vector2(0, 1); // top left
@@ -540,7 +547,7 @@ public class FlexElement : UIBehaviour, IFlexNode
             _children.Add(child);
 
 #if UNITY_EDITOR
-            _drivenTracker.Add(this, child.Transform, DrivenTransformProperties.All);
+            _drivenTracker.Add(this, child.Transform, ControlledProperties);
 #endif
         }
 
@@ -586,6 +593,14 @@ public class FlexElement : UIBehaviour, IFlexNode
         {
             _isDoingLayout = false;
         }
+    }
+
+    void IFlexNode.GetScale(out float scaleX, out float scaleY)
+    {
+        var rectTransform = (RectTransform)transform;
+        var localScale = rectTransform.localScale;
+        scaleX = localScale.x;
+        scaleY = localScale.y;
     }
 
     void IFlexNode.GetCalculatedMinSize(out float minWidth, out float minHeight)
