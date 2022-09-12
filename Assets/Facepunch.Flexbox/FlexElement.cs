@@ -181,19 +181,25 @@ public class FlexElement : UIBehaviour, IFlexNode
             }
         }
         
+        var minSize = horizontal ? MinWidth : MinHeight;
+        var maxSize = horizontal ? MaxWidth : MaxHeight;
+        var minClamp = minSize.HasValue && minSize.Unit == FlexUnit.Pixels ? minSize.Value : 0;
+        var maxClamp = maxSize.HasValue && maxSize.Unit == FlexUnit.Pixels ? maxSize.Value : float.PositiveInfinity;
+
+        prefSize = Mathf.Clamp(mainAxisPreferredSize + padding, minClamp, maxClamp);
+
         if (IsAbsolute)
         {
             var rect = ((RectTransform)transform).rect;
-            prefSize = horizontal ? rect.width : rect.height;
-        }
-        else
-        {
-            var minSize = horizontal ? MinWidth : MinHeight;
-            var maxSize = horizontal ? MaxWidth : MaxHeight;
-            var minClamp = minSize.HasValue && minSize.Unit == FlexUnit.Pixels ? minSize.Value : 0;
-            var maxClamp = maxSize.HasValue && maxSize.Unit == FlexUnit.Pixels ? maxSize.Value : float.PositiveInfinity;
 
-            prefSize = Mathf.Clamp(mainAxisPreferredSize + padding, minClamp, maxClamp);
+            if (horizontal && !AutoSizeX)
+            {
+                prefSize = rect.width;
+            }
+            else if (!horizontal && !AutoSizeY)
+            {
+                prefSize = rect.height;
+            }
         }
 
         _growSum = growSum;
@@ -260,7 +266,7 @@ public class FlexElement : UIBehaviour, IFlexNode
                     continue;
                 }
 
-                var (childMinMain, childMaxMain, childFlexible, childPrefMain) = GetChildParams(child);
+                var (childMinMain, childMaxMain, childFlexible, _) = GetChildParams(child);
 
                 var finishedFlexing = true;
                 var mainSize = _childSizes[i];
