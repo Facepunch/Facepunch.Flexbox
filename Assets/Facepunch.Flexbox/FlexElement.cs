@@ -49,10 +49,7 @@ public class FlexElement : UIBehaviour, IFlexNode
 
     private bool _isDirty;
     private bool _isDoingLayout;
-    private float _minWidth, _minHeight;
-    private float _maxWidth, _maxHeight;
     private float _prefWidth, _prefHeight;
-    private float _contentPrefWidth, _contentPrefHeight;
     private int _growSum, _shrinkSum;
     private readonly List<IFlexNode> _children = new List<IFlexNode>();
     private readonly List<float> _childSizes = new List<float>();
@@ -137,15 +134,11 @@ public class FlexElement : UIBehaviour, IFlexNode
         Profiler.BeginSample(nameof(MeasureMainAxis), this);
 
         var horizontal = IsHorizontal;
-        ref var minSize = ref Pick(horizontal, ref _minWidth, ref _minHeight);
-        ref var maxSize = ref Pick(horizontal, ref _maxWidth, ref _maxHeight);
-        ref var contentPrefSize = ref Pick(horizontal, ref _contentPrefWidth, ref _contentPrefHeight);
         ref var prefSize = ref Pick(horizontal, ref _prefWidth, ref _prefHeight);
         var padding = horizontal
             ? Padding.left + Padding.right
             : Padding.top + Padding.bottom;
 
-        var mainAxisMinSize = 0f;
         var mainAxisPreferredSize = 0f;
         var growSum = 0;
         var shrinkSum = 0;
@@ -159,15 +152,14 @@ public class FlexElement : UIBehaviour, IFlexNode
             }
 
             child.GetScale(out var childScaleX, out var childScaleY);
-            child.GetCalculatedMinSize(out var childMinWidth, out var childMinHeight);
-            child.GetCalculatedMaxSize(out var childMaxWidth, out var childMaxHeight);
             child.GetPreferredSize(out var childPreferredWidth, out var childPreferredHeight);
 
-            var hasFixedWidth = !float.IsPositiveInfinity(childMaxWidth) && childMinWidth >= childMaxWidth;
-            var hasFixedHeight = !float.IsPositiveInfinity(childMaxHeight) && childMinHeight >= childMaxHeight;
-            var isFlexible = horizontal ? !hasFixedWidth : !hasFixedHeight;
-
-            if (isFlexible)
+            var childMinSize = horizontal ? child.MinWidth : child.MinHeight;
+            var childMaxSize = horizontal ? child.MaxWidth : child.MaxHeight;
+            var hasFixedSize = childMinSize.HasValue && childMaxSize.HasValue &&
+                               childMinSize.Unit == childMaxSize.Unit &&
+                               childMinSize.Value >= childMaxSize.Value;
+            if (!hasFixedSize)
             {
                 growSum += child.Grow;
                 shrinkSum += child.Shrink;
@@ -176,12 +168,10 @@ public class FlexElement : UIBehaviour, IFlexNode
             var gap = first ? 0f : Gap;
             if (horizontal)
             {
-                mainAxisMinSize += (childMinWidth * childScaleX) + gap;
                 mainAxisPreferredSize += (childPreferredWidth * childScaleX) + gap;
             }
             else
             {
-                mainAxisMinSize += (childMinHeight * childScaleY) + gap;
                 mainAxisPreferredSize += (childPreferredHeight * childScaleY) + gap;
             }
 
@@ -190,27 +180,21 @@ public class FlexElement : UIBehaviour, IFlexNode
                 first = false;
             }
         }
-
+        
         if (IsAbsolute)
         {
             var rect = ((RectTransform)transform).rect;
-            minSize = maxSize = horizontal ? rect.width : rect.height;
-
-            if ((horizontal && AutoSizeX) || (!horizontal && AutoSizeY))
-            {
-                minSize = 0;
-                maxSize = float.PositiveInfinity;
-            }
+            prefSize = horizontal ? rect.width : rect.height;
         }
         else
         {
-            minSize = (horizontal ? MinWidth : MinHeight).GetValueOrDefault(mainAxisMinSize + padding);
-            maxSize = (horizontal ? MaxWidth : MaxHeight).GetValueOrDefault(float.PositiveInfinity);
-            if (minSize > maxSize) minSize = maxSize;
-        }
+            var minSize = horizontal ? MinWidth : MinHeight;
+            var maxSize = horizontal ? MaxWidth : MaxHeight;
+            var minClamp = minSize.HasValue && minSize.Unit == FlexUnit.Pixels ? minSize.Value : 0;
+            var maxClamp = maxSize.HasValue && maxSize.Unit == FlexUnit.Pixels ? maxSize.Value : float.PositiveInfinity;
 
-        contentPrefSize = Mathf.Max(mainAxisPreferredSize, mainAxisMinSize);
-        prefSize = Mathf.Clamp(contentPrefSize + padding, minSize, maxSize);
+            prefSize = Mathf.Clamp(mainAxisPreferredSize + padding, minClamp, maxClamp);
+        }
 
         _growSum = growSum;
         _shrinkSum = shrinkSum;
@@ -228,24 +212,41 @@ public class FlexElement : UIBehaviour, IFlexNode
         var innerSize = horizontal
             ? maxWidth - Padding.left - Padding.right
             : maxHeight - Padding.top - Padding.bottom;
-        var prefMainSize = horizontal ? _contentPrefWidth : _contentPrefHeight;
 
-        var growthAllowance = Mathf.Max(innerSize - prefMainSize, 0);
-        var shrinkAllowance = Mathf.Max(prefMainSize - innerSize, 0);
+        var prefMainContentSize = 0f;
+        var first = true;
+        SizingChildren.Clear();
+        _childSizes.Clear();
+        foreach (var child in _children)
+        {
+            var (childMinMain, childMaxMain, childFlexible, childPrefMain) = GetChildParams(child);
+            
+            var startingMainSize = Mathf.Clamp(childPrefMain, childMinMain, childMaxMain);
+            _childSizes.Add(startingMainSize);
 
-        var actualMainSize = prefMainSize;
+            SizingChildren.Add(childFlexible ? child : null);
+
+            prefMainContentSize += startingMainSize;
+
+            if (first)
+            {
+                first = false;
+            }
+            else
+            {
+                prefMainContentSize += Gap;
+            }
+        }
+
+        var growthAllowance = Mathf.Max(innerSize - prefMainContentSize, 0);
+        var shrinkAllowance = Mathf.Max(prefMainContentSize - innerSize, 0);
+
+        var actualMainSize = prefMainContentSize;
         if (_growSum > 0 && growthAllowance > 0) actualMainSize = innerSize;
         else if (_shrinkSum > 0 && shrinkAllowance > 0) actualMainSize = innerSize;
 
-        //Debug.Log($"({name}) main setup: w={maxWidth} h={maxHeight} inner={innerSize} pref={prefMainSize} grow={growthAllowance} shrink={shrinkAllowance}", this);
+        //Debug.Log($"({name}) main setup: w={maxWidth} h={maxHeight} inner={innerSize} pref={(horizontal ? _prefWidth : _prefHeight)} grow={growthAllowance} shrink={shrinkAllowance}", this);
         
-        SizingChildren.Clear();
-        foreach (var child in _children)
-        {
-            SizingChildren.Add(child);
-        }
-
-        _childSizes.Clear();
         while (SizingChildren.Exists(n => n != null))
         {
             var growSum = _growSum;
@@ -259,20 +260,7 @@ public class FlexElement : UIBehaviour, IFlexNode
                     continue;
                 }
 
-                child.GetCalculatedMinSize(out var childMinWidth, out var childMinHeight);
-                child.GetCalculatedMaxSize(out var childMaxWidth, out var childMaxHeight);
-                child.GetPreferredSize(out var childPreferredWidth, out var childPreferredHeight);
-
-                var childMinMain = horizontal ? childMinWidth : childMinHeight;
-                var childMaxMain = horizontal ? childMaxWidth : childMaxHeight;
-                var childPrefMain = horizontal ? childPreferredWidth : childPreferredHeight;
-                var childFlexible = childMinMain < childMaxMain;
-
-                if (_childSizes.Count == i)
-                {
-                    var startingMainSize = Mathf.Max(childPrefMain, childMinMain);
-                    _childSizes.Add(startingMainSize);
-                }
+                var (childMinMain, childMaxMain, childFlexible, childPrefMain) = GetChildParams(child);
 
                 var finishedFlexing = true;
                 var mainSize = _childSizes[i];
@@ -345,6 +333,18 @@ public class FlexElement : UIBehaviour, IFlexNode
 
         Profiler.EndSample();
 
+        (float Min, float Max, bool Flexible, float Pref) GetChildParams(IFlexNode child)
+        {
+            var childMinMain = CalculateLengthValue(horizontal ? child.MinWidth : child.MinHeight, innerSize, 0);
+            var childMaxMain = CalculateLengthValue(horizontal ? child.MaxWidth : child.MaxHeight, innerSize, float.PositiveInfinity);
+            var childFlexible = childMinMain < childMaxMain;
+
+            child.GetPreferredSize(out var childPreferredWidth, out var childPreferredHeight);
+            var childPrefMain = horizontal ? childPreferredWidth : childPreferredHeight;
+
+            return (childMinMain, childMaxMain, childFlexible, childPrefMain);
+        }
+
         float GetMainAxisStart(bool isHorizontal, bool isReversed)
         {
             switch (JustifyContent)
@@ -372,15 +372,11 @@ public class FlexElement : UIBehaviour, IFlexNode
         Profiler.BeginSample(nameof(MeasureCrossAxis), this);
 
         var horizontal = IsHorizontal;
-        ref var minSize = ref Pick(horizontal, ref _minHeight, ref _minWidth);
-        ref var maxSize = ref Pick(horizontal, ref _maxHeight, ref _maxWidth);
-        ref var contentPrefSize = ref Pick(horizontal, ref _contentPrefHeight, ref _contentPrefWidth);
         ref var prefSize = ref Pick(horizontal, ref _prefHeight, ref _prefWidth);
         var padding = horizontal
             ? Padding.left + Padding.right
             : Padding.top + Padding.bottom;
 
-        var crossAxisMinSize = 0f;
         var crossAxisPreferredSize = 0f;
         foreach (var child in _children)
         {
@@ -391,17 +387,14 @@ public class FlexElement : UIBehaviour, IFlexNode
             }
             
             child.GetScale(out var childScaleX, out var childScaleY);
-            child.GetCalculatedMinSize(out var childMinWidth, out var childMinHeight);
             child.GetPreferredSize(out var childPreferredWidth, out var childPreferredHeight);
 
             if (horizontal)
             {
-                crossAxisMinSize = Mathf.Max(crossAxisMinSize, childMinHeight * childScaleY);
                 crossAxisPreferredSize = Mathf.Max(crossAxisPreferredSize, childPreferredHeight * childScaleY);
             }
             else
             {
-                crossAxisMinSize = Mathf.Max(crossAxisMinSize, childMinWidth * childScaleX);
                 crossAxisPreferredSize = Mathf.Max(crossAxisPreferredSize, childPreferredWidth * childScaleX);
             }
         }
@@ -409,23 +402,17 @@ public class FlexElement : UIBehaviour, IFlexNode
         if (IsAbsolute)
         {
             var rect = ((RectTransform)transform).rect;
-            minSize = maxSize = horizontal ? rect.height : rect.width;
-
-            if ((!horizontal && AutoSizeX) || (horizontal && AutoSizeY))
-            {
-                minSize = 0;
-                maxSize = float.PositiveInfinity;
-            }
+            prefSize = horizontal ? rect.height : rect.width;
         }
         else
         {
-            minSize = (horizontal ? MinHeight : MinWidth).GetValueOrDefault(crossAxisMinSize + padding);
-            maxSize = (horizontal ? MaxHeight : MaxWidth).GetValueOrDefault(float.PositiveInfinity);
-            if (minSize > maxSize) minSize = maxSize;
-        }
+            var minSize = horizontal ? MinHeight : MinWidth;
+            var maxSize = horizontal ? MaxHeight : MaxWidth;
+            var minClamp = minSize.HasValue && minSize.Unit == FlexUnit.Pixels ? minSize.Value : 0;
+            var maxClamp = maxSize.HasValue && maxSize.Unit == FlexUnit.Pixels ? maxSize.Value : float.PositiveInfinity;
 
-        contentPrefSize = Mathf.Max(crossAxisPreferredSize, crossAxisMinSize);
-        prefSize = Mathf.Clamp(contentPrefSize + padding, minSize, maxSize);
+            prefSize = Mathf.Clamp(crossAxisPreferredSize + padding, minClamp, maxClamp);
+        }
 
         Profiler.EndSample();
     }
@@ -445,13 +432,11 @@ public class FlexElement : UIBehaviour, IFlexNode
         foreach (var child in _children)
         {
             child.GetScale(out var childScaleX, out var childScaleY);
-            child.GetCalculatedMinSize(out var childMinWidth, out var childMinHeight);
-            child.GetCalculatedMaxSize(out var childMaxWidth, out var childMaxHeight);
             child.GetPreferredSize(out var childPreferredWidth, out var childPreferredHeight);
 
             var childAlign = child.AlignSelf.GetValueOrDefault(AlignItems);
-            var childMinCross = horizontal ? childMinHeight : childMinWidth;
-            var childMaxCross = horizontal ? childMaxHeight : childMaxWidth;
+            var childMinCross = CalculateLengthValue(horizontal ? child.MinHeight : child.MinWidth, innerSize, 0);
+            var childMaxCross = CalculateLengthValue(horizontal ? child.MaxHeight : child.MaxWidth, innerSize, float.PositiveInfinity);
             var childPrefCross = horizontal ? childPreferredHeight : childPreferredWidth;
             var crossSize = childAlign == FlexAlign.Stretch ? innerSize : childPrefCross;
             var clampedCrossSize = Mathf.Clamp(Mathf.Min(crossSize, innerSize), childMinCross, childMaxCross);
@@ -514,6 +499,18 @@ public class FlexElement : UIBehaviour, IFlexNode
         return ref ifFalse;
     }
 
+    private static float CalculateLengthValue(in FlexLength length, float fillValue, float defaultValue)
+    {
+        if (!length.HasValue)
+        {
+            return defaultValue;
+        }
+
+        return length.Unit == FlexUnit.Percent
+            ? (length.Value / 100f) * fillValue
+            : length.Value;
+    }
+
     private void SetupTransform()
     {
         if (!IsAbsolute)
@@ -531,6 +528,10 @@ public class FlexElement : UIBehaviour, IFlexNode
     bool IFlexNode.IsActive => IsActive();
     bool IFlexNode.IsAbsolute => IsAbsolute;
     bool IFlexNode.IsDirty => _isDirty;
+    FlexLength IFlexNode.MinWidth => MinWidth;
+    FlexLength IFlexNode.MaxWidth => MaxWidth;
+    FlexLength IFlexNode.MinHeight => MinHeight;
+    FlexLength IFlexNode.MaxHeight => MaxHeight;
     int IFlexNode.Grow => Grow;
     int IFlexNode.Shrink => Shrink;
     FlexAlignSelf IFlexNode.AlignSelf => AlignSelf;
@@ -601,18 +602,6 @@ public class FlexElement : UIBehaviour, IFlexNode
         var localScale = rectTransform.localScale;
         scaleX = localScale.x;
         scaleY = localScale.y;
-    }
-
-    void IFlexNode.GetCalculatedMinSize(out float minWidth, out float minHeight)
-    {
-        minWidth = _minWidth;
-        minHeight = _minHeight;
-    }
-
-    void IFlexNode.GetCalculatedMaxSize(out float maxWidth, out float maxHeight)
-    {
-        maxWidth = _maxWidth;
-        maxHeight = _maxHeight;
     }
 
     void IFlexNode.GetPreferredSize(out float preferredWidth, out float preferredHeight)
