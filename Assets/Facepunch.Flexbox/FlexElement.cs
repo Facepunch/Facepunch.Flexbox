@@ -314,6 +314,9 @@ public class FlexElement : UIBehaviour, IFlexNode
 
             //Debug.Log($"({name}) main: min={childMinMain} max={childMaxMain} pref={childPrefMain} clamped={clampedMainSize}", child.Transform);
 
+            child.GetScale(out var childScaleX, out var childScaleY);
+            var scaledMainSize = mainSize * (horizontal ? childScaleX : childScaleY);
+
             var childRt = child.Transform;
 
             var childSizeDelta = childRt.sizeDelta;
@@ -327,8 +330,8 @@ public class FlexElement : UIBehaviour, IFlexNode
                 : new Vector2(childAnchoredPos.x, mainAxisOffset);
 
             mainAxisOffset += horizontal
-                ? mainSize + Gap
-                : -mainSize - Gap;
+                ? scaledMainSize + Gap
+                : -scaledMainSize - Gap;
         }
 
         Profiler.EndSample();
