@@ -23,8 +23,6 @@ public class FlexText : TMPro.TextMeshProUGUI, IFlexNode
 
     private bool _isDirty;
     private bool _isDoingLayout;
-    private float _minWidth, _minHeight;
-    private float _maxWidth, _maxHeight;
     private float _preferredWidth, _preferredHeight;
 
 #if UNITY_EDITOR
@@ -76,6 +74,10 @@ public class FlexText : TMPro.TextMeshProUGUI, IFlexNode
     bool IFlexNode.IsActive => isActiveAndEnabled;
     bool IFlexNode.IsAbsolute => false;
     bool IFlexNode.IsDirty => _isDirty;
+    FlexLength IFlexNode.MinWidth => MinWidth;
+    FlexLength IFlexNode.MaxWidth => MaxWidth;
+    FlexLength IFlexNode.MinHeight => MinHeight;
+    FlexLength IFlexNode.MaxHeight => MaxHeight;
     int IFlexNode.Grow => Grow;
     int IFlexNode.Shrink => Shrink;
     FlexAlignSelf IFlexNode.AlignSelf => AlignSelf;
@@ -93,16 +95,12 @@ public class FlexText : TMPro.TextMeshProUGUI, IFlexNode
     void IFlexNode.MeasureHorizontal()
     {
         Profiler.BeginSample(nameof(IFlexNode.MeasureHorizontal), this);
+        
+        // todo: use max width/height if we have any
 
-        _minWidth = MinWidth.GetValueOrDefault(0);
-        _maxWidth = MaxWidth.GetValueOrDefault(float.PositiveInfinity);
-
-        _minHeight = MinHeight.GetValueOrDefault(0);
-        _maxHeight = MaxHeight.GetValueOrDefault(float.PositiveInfinity);
-
-        var preferredSize = GetPreferredValues(_maxWidth, _maxHeight);
-        _preferredWidth = Mathf.Clamp(preferredSize.x, _minWidth, _maxWidth);
-        _preferredHeight = Mathf.Clamp(preferredSize.y, _minHeight, _maxHeight);
+        var preferredSize = GetPreferredValues();
+        _preferredWidth = preferredSize.x;
+        _preferredHeight = preferredSize.y;
 
         Profiler.EndSample();
     }
@@ -120,9 +118,9 @@ public class FlexText : TMPro.TextMeshProUGUI, IFlexNode
         var size = rt.sizeDelta;
         //Debug.Log($"text vertical w={size.x}");
 
-        var preferredSize = GetPreferredValues(Mathf.Min(size.x, _maxWidth), float.PositiveInfinity);
-        _preferredWidth = Mathf.Clamp(preferredSize.x, _minWidth, _maxWidth);
-        _preferredHeight = Mathf.Clamp(preferredSize.y, _minHeight, _maxHeight);
+        var preferredSize = GetPreferredValues(size.x, float.PositiveInfinity);
+        _preferredWidth = preferredSize.x;
+        _preferredHeight = preferredSize.y;
 
         Profiler.EndSample();
     }
@@ -138,18 +136,6 @@ public class FlexText : TMPro.TextMeshProUGUI, IFlexNode
         var localScale = rectTransform.localScale;
         scaleX = localScale.x;
         scaleY = localScale.y;
-    }
-
-    void IFlexNode.GetCalculatedMinSize(out float minWidth, out float minHeight)
-    {
-        minWidth = _minWidth;
-        minHeight = _minHeight;
-    }
-
-    void IFlexNode.GetCalculatedMaxSize(out float maxWidth, out float maxHeight)
-    {
-        maxWidth = _maxWidth;
-        maxHeight = _maxHeight;
     }
 
     void IFlexNode.GetPreferredSize(out float preferredWidth, out float preferredHeight)

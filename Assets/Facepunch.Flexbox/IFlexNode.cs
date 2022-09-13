@@ -7,6 +7,10 @@ public interface IFlexNode
     bool IsAbsolute { get; }
     bool IsDirty { get; }
 
+    FlexLength MinWidth { get; }
+    FlexLength MaxWidth { get; }
+    FlexLength MinHeight { get; }
+    FlexLength MaxHeight { get; }
     int Grow { get; }
     int Shrink { get; }
     FlexAlignSelf AlignSelf { get; }
@@ -19,7 +23,5 @@ public interface IFlexNode
     void LayoutVertical(float maxWidth, float maxHeight);
 
     void GetScale(out float scaleX, out float scaleY);
-    void GetCalculatedMinSize(out float minWidth, out float minHeight);
-    void GetCalculatedMaxSize(out float maxWidth, out float maxHeight);
     void GetPreferredSize(out float preferredWidth, out float preferredHeight);
 }

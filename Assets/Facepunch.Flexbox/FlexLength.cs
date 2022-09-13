@@ -1,13 +1,19 @@
 ﻿using System;
+using UnityEngine;
 
 [Serializable]
 public struct FlexLength
 {
     public bool HasValue;
     public float Value;
+    public FlexUnit Unit;
+}
 
-    internal float GetValueOrDefault(float defaultValue)
-    {
-        return HasValue ? Value : defaultValue;
-    }
+public enum FlexUnit
+{
+    [InspectorName("px")]
+    Pixels,
+
+    [InspectorName("%")]
+    Percent,
 }
