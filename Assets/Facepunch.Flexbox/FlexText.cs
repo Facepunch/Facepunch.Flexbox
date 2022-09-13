@@ -22,7 +22,6 @@ public class FlexText : TMPro.TextMeshProUGUI, IFlexNode
     public FlexLength MinHeight, MaxHeight;
 
     private bool _isDirty;
-    private bool _isDoingLayout;
     private float _preferredWidth, _preferredHeight;
 
 #if UNITY_EDITOR
@@ -84,7 +83,7 @@ public class FlexText : TMPro.TextMeshProUGUI, IFlexNode
 
     void IFlexNode.SetLayoutDirty(bool force)
     {
-        if (!force && (_isDoingLayout || !IsActive()))
+        if (!force && !IsActive())
         {
             return;
         }

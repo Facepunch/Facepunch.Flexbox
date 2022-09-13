@@ -21,7 +21,7 @@ public class FlexElement : UIBehaviour, IFlexNode
     public FlexAlign AlignItems = FlexAlign.Stretch;
 
     [Tooltip("Spacing to add from this elements borders to where children are laid out.")]
-    public RectOffset Padding;
+    public FlexPadding Padding;
 
     [Min(0), Tooltip("Spacing to add between each child flex item.")]
     public float Gap = 0;
@@ -633,11 +633,6 @@ public class FlexElement : UIBehaviour, IFlexNode
 
     protected override void OnEnable()
     {
-        if (Padding == null)
-        {
-            Padding = new RectOffset();
-        }
-
         SetupTransform();
         SetLayoutDirty(true);
     }
