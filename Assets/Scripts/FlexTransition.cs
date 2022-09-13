@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
+using Object = UnityEngine.Object;
 
 public class FlexTransition : MonoBehaviour
 {
@@ -29,11 +30,7 @@ public class FlexTransition : MonoBehaviour
     public struct Definition
     {
         public TransitionProperty Property;
-
-        public FlexElement Element;
-        public Image Image;
-        public TMP_Text Text;
-        public CanvasGroup CanvasGroup;
+        public Object Object;
 
         public float FromFloat;
         public float ToFloat;
@@ -74,7 +71,7 @@ public class FlexTransition : MonoBehaviour
             {
                 case TransitionProperty.ScaleX:
                     {
-                        var element = transition.Element;
+                        var element = transition.Object as FlexElement;
                         if (element == null)
                         {
                             break;
@@ -96,7 +93,7 @@ public class FlexTransition : MonoBehaviour
                     
                 case TransitionProperty.ScaleY:
                     {
-                        var element = transition.Element;
+                        var element = transition.Object as FlexElement;
                         if (element == null)
                         {
                             break;
@@ -118,7 +115,7 @@ public class FlexTransition : MonoBehaviour
 
                 case TransitionProperty.ImageColor:
                     {
-                        var image = transition.Image;
+                        var image = transition.Object as Image;
                         if (image == null)
                         {
                             break;
@@ -140,7 +137,7 @@ public class FlexTransition : MonoBehaviour
 
                 case TransitionProperty.TextColor:
                     {
-                        var text = transition.Text;
+                        var text = transition.Object as TMP_Text;
                         if (text == null)
                         {
                             break;
@@ -162,7 +159,7 @@ public class FlexTransition : MonoBehaviour
 
                 case TransitionProperty.CanvasAlpha:
                     {
-                        var canvas = transition.CanvasGroup;
+                        var canvas = transition.Object as CanvasGroup;
                         if (canvas == null)
                         {
                             break;
@@ -175,7 +172,7 @@ public class FlexTransition : MonoBehaviour
 
                 default:
                     {
-                        var element = transition.Element;
+                        var element = transition.Object as FlexElement;
                         if (element == null)
                         {
                             break;

@@ -1,6 +1,9 @@
-﻿using UnityEditor;
+﻿using System;
+using TMPro;
+using UnityEditor;
 using UnityEditorInternal;
 using UnityEngine;
+using UnityEngine.UI;
 
 [CustomEditor(typeof(FlexTransition), true)]
 internal class FlexTransitionEditor : Editor
@@ -37,7 +40,7 @@ internal class FlexTransitionEditor : Editor
         };
     }
 
-    private void DrawTransition(Rect position, SerializedProperty property)
+    private static void DrawTransition(Rect position, SerializedProperty property)
     {
         var lineRect = new Rect(position.x, position.y, position.width, EditorGUIUtility.singleLineHeight);
 
@@ -45,37 +48,38 @@ internal class FlexTransitionEditor : Editor
         EditorGUI.PropertyField(lineRect, targetProperty);
         lineRect.y += EditorGUIUtility.singleLineHeight + LineSpacing;
 
+        var objectProp = property.FindPropertyRelative("Object");
+
+        GUIContent label;
+        Type type;
         var useColor = false;
 
         var propertyType = (FlexTransition.TransitionProperty)targetProperty.intValue;
         if (propertyType == FlexTransition.TransitionProperty.ImageColor)
         {
-            var imageProp = property.FindPropertyRelative("Image");
-            EditorGUI.PropertyField(lineRect, imageProp);
-            lineRect.y += EditorGUIUtility.singleLineHeight + LineSpacing;
-
+            label = new GUIContent("Image");
+            type = typeof(Image);
             useColor = true;
         }
         else if (propertyType == FlexTransition.TransitionProperty.TextColor)
         {
-            var textProp = property.FindPropertyRelative("Text");
-            EditorGUI.PropertyField(lineRect, textProp);
-            lineRect.y += EditorGUIUtility.singleLineHeight + LineSpacing;
-            
+            label = new GUIContent("Text");
+            type = typeof(TMP_Text);
             useColor = true;
         }
         else if (propertyType == FlexTransition.TransitionProperty.CanvasAlpha)
         {
-            var canvasProp = property.FindPropertyRelative("CanvasGroup");
-            EditorGUI.PropertyField(lineRect, canvasProp);
-            lineRect.y += EditorGUIUtility.singleLineHeight + LineSpacing;
+            label = new GUIContent("CanvasGroup");
+            type = typeof(CanvasGroup);
         }
         else
         {
-            var elementProp = property.FindPropertyRelative("Element");
-            EditorGUI.PropertyField(lineRect, elementProp);
-            lineRect.y += EditorGUIUtility.singleLineHeight + LineSpacing;
+            label = new GUIContent("Element");
+            type = typeof(FlexElement);
         }
+
+        objectProp.objectReferenceValue = EditorGUI.ObjectField(lineRect, label, objectProp.objectReferenceValue, type, true);
+        lineRect.y += EditorGUIUtility.singleLineHeight + LineSpacing;
 
         if (useColor)
         {

@@ -498,7 +498,7 @@ public class FlexElement : UIBehaviour, IFlexNode
                 case FlexAlign.End:
                     return isHorizontal
                         ? -innerSize - Padding.top + childHeight
-                        : innerSize - Padding.right - childWidth;
+                        : innerSize + Padding.left - childWidth;
                 case FlexAlign.Center:
                     return isHorizontal
                         ? -((innerSize / 2) - (childHeight / 2) + Padding.top)
