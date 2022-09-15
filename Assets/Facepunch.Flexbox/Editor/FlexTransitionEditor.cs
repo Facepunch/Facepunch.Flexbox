@@ -84,22 +84,41 @@ internal class FlexTransitionEditor : Editor
         if (useColor)
         {
             var fromColor = property.FindPropertyRelative("FromColor");
-            EditorGUI.PropertyField(lineRect, fromColor, new GUIContent("From"));
+            if (ValueField(lineRect, fromColor, "From"))
+            {
+                fromColor.colorValue = FlexTransition.GetCurrentValueColor(objectProp.objectReferenceValue, propertyType);
+            }
             lineRect.y += EditorGUIUtility.singleLineHeight + LineSpacing;
 
+
             var toColor = property.FindPropertyRelative("ToColor");
-            EditorGUI.PropertyField(lineRect, toColor, new GUIContent("To"));
+            if (ValueField(lineRect, toColor, "To"))
+            {
+                toColor.colorValue = FlexTransition.GetCurrentValueColor(objectProp.objectReferenceValue, propertyType);
+            }
             lineRect.y += EditorGUIUtility.singleLineHeight + LineSpacing;
         }
         else
         {
             var fromFloat = property.FindPropertyRelative("FromFloat");
-            EditorGUI.PropertyField(lineRect, fromFloat, new GUIContent("From"));
+            if (ValueField(lineRect, fromFloat, "From"))
+            {
+                fromFloat.floatValue = FlexTransition.GetCurrentValueFloat(objectProp.objectReferenceValue, propertyType);
+            }
             lineRect.y += EditorGUIUtility.singleLineHeight + LineSpacing;
 
             var toFloat = property.FindPropertyRelative("ToFloat");
-            EditorGUI.PropertyField(lineRect, toFloat, new GUIContent("To"));
+            if (ValueField(lineRect, toFloat, "To"))
+            {
+                fromFloat.floatValue = FlexTransition.GetCurrentValueFloat(objectProp.objectReferenceValue, propertyType);
+            }
             lineRect.y += EditorGUIUtility.singleLineHeight + LineSpacing;
+        }
+
+        bool ValueField(Rect rect, SerializedProperty fieldProperty, string fieldLabel)
+        {
+            EditorGUI.PropertyField(new Rect(lineRect.x, lineRect.y, lineRect.width - 56, lineRect.height), fieldProperty, new GUIContent(fieldLabel));
+            return GUI.Button(new Rect(lineRect.x + lineRect.width - 52, lineRect.y, 52, lineRect.height), "Current");
         }
 
         var duration = property.FindPropertyRelative("Duration");

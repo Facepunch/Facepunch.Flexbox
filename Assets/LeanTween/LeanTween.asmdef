@@ -1,9 +1,6 @@
 {
-    "name": "Facepunch.Flexbox",
-    "references": [
-        "Unity.TextMeshPro",
-        "LeanTween"
-    ],
+    "name": "LeanTween",
+    "references": [],
     "includePlatforms": [],
     "excludePlatforms": [],
     "allowUnsafeCode": false,
