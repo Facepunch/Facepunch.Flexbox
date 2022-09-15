@@ -1,13 +1,16 @@
 ﻿using System;
 
-[Serializable]
-public struct FlexAlignSelf
+namespace Facepunch.Flexbox
 {
-    public bool HasValue;
-    public FlexAlign Value;
-
-    internal FlexAlign GetValueOrDefault(FlexAlign defaultValue)
+    [Serializable]
+    public struct FlexAlignSelf
     {
-        return HasValue ? Value : defaultValue;
+        public bool HasValue;
+        public FlexAlign Value;
+
+        internal FlexAlign GetValueOrDefault(FlexAlign defaultValue)
+        {
+            return HasValue ? Value : defaultValue;
+        }
     }
 }

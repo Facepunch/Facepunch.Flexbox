@@ -1,43 +1,46 @@
 ﻿using UnityEditor;
 using TMPro.EditorUtilities;
 
-[CustomEditor(typeof(FlexText))]
-[CanEditMultipleObjects]
-public class FlexTextEditor : TMP_EditorPanelUI
+namespace Facepunch.Flexbox
 {
-    private SerializedProperty _grow;
-    private SerializedProperty _shrink;
-    private SerializedProperty _alignSelf;
-    private SerializedProperty _minWidth, _maxWidth;
-    private SerializedProperty _minHeight, _maxHeight;
-
-    protected override void OnEnable()
+    [CustomEditor(typeof(FlexText))]
+    [CanEditMultipleObjects]
+    public class FlexTextEditor : TMP_EditorPanelUI
     {
-        base.OnEnable();
+        private SerializedProperty _grow;
+        private SerializedProperty _shrink;
+        private SerializedProperty _alignSelf;
+        private SerializedProperty _minWidth, _maxWidth;
+        private SerializedProperty _minHeight, _maxHeight;
 
-        _grow = serializedObject.FindProperty("Grow");
-        _shrink = serializedObject.FindProperty("Shrink");
-        _alignSelf = serializedObject.FindProperty("AlignSelf");
-        _minWidth = serializedObject.FindProperty("MinWidth");
-        _maxWidth = serializedObject.FindProperty("MaxWidth");
-        _minHeight = serializedObject.FindProperty("MinHeight");
-        _maxHeight = serializedObject.FindProperty("MaxHeight");
-    }
+        protected override void OnEnable()
+        {
+            base.OnEnable();
 
-    public override void OnInspectorGUI()
-    {
-        base.OnInspectorGUI();
+            _grow = serializedObject.FindProperty("Grow");
+            _shrink = serializedObject.FindProperty("Shrink");
+            _alignSelf = serializedObject.FindProperty("AlignSelf");
+            _minWidth = serializedObject.FindProperty("MinWidth");
+            _maxWidth = serializedObject.FindProperty("MaxWidth");
+            _minHeight = serializedObject.FindProperty("MinHeight");
+            _maxHeight = serializedObject.FindProperty("MaxHeight");
+        }
 
-        serializedObject.Update();
-        
-        EditorGUILayout.PropertyField(_grow);
-        EditorGUILayout.PropertyField(_shrink);
-        EditorGUILayout.PropertyField(_alignSelf);
-        EditorGUILayout.PropertyField(_minWidth);
-        EditorGUILayout.PropertyField(_maxWidth);
-        EditorGUILayout.PropertyField(_minHeight);
-        EditorGUILayout.PropertyField(_maxHeight);
+        public override void OnInspectorGUI()
+        {
+            base.OnInspectorGUI();
 
-        serializedObject.ApplyModifiedProperties();
+            serializedObject.Update();
+
+            EditorGUILayout.PropertyField(_grow);
+            EditorGUILayout.PropertyField(_shrink);
+            EditorGUILayout.PropertyField(_alignSelf);
+            EditorGUILayout.PropertyField(_minWidth);
+            EditorGUILayout.PropertyField(_maxWidth);
+            EditorGUILayout.PropertyField(_minHeight);
+            EditorGUILayout.PropertyField(_maxHeight);
+
+            serializedObject.ApplyModifiedProperties();
+        }
     }
 }

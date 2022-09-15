@@ -5,76 +5,79 @@ using UnityEngine;
 using UnityEngine.UI;
 using Object = UnityEngine.Object;
 
-public class FlexTransition : MonoBehaviour
+namespace Facepunch.Flexbox
 {
-    public enum TransitionProperty
+    public class FlexTransition : MonoBehaviour
     {
-        PaddingLeft,
-        PaddingRight,
-        PaddingTop,
-        PaddingBottom,
-        Gap,
-        MinWidth,
-        MinHeight,
-        MaxWidth,
-        MaxHeight,
-
-        ScaleX = 100,
-        ScaleY,
-        ImageColor,
-        TextColor,
-        CanvasAlpha,
-    }
-
-    [Serializable]
-    public struct Definition
-    {
-        public TransitionProperty Property;
-        public Object Object;
-
-        public float FromFloat;
-        public float ToFloat;
-
-        public Color FromColor;
-        public Color ToColor;
-
-        [Min(0)]
-        public float Duration;
-        public LeanTweenType Ease;
-    }
-
-    public Definition[] Transitions;
-
-    private readonly List<int> _pendingIds = new List<int>();
-    private bool _currentState;
-
-    public void Start()
-    {
-        SwitchState(false, false);
-    }
-
-    public void SwitchState(bool enabled, bool animate)
-    {
-        _currentState = enabled;
-
-        if (Transitions == null || Transitions.Length == 0)
+        public enum TransitionProperty
         {
-            return;
+            PaddingLeft,
+            PaddingRight,
+            PaddingTop,
+            PaddingBottom,
+            Gap,
+            MinWidth,
+            MinHeight,
+            MaxWidth,
+            MaxHeight,
+
+            ScaleX = 100,
+            ScaleY,
+            ImageColor,
+            TextColor,
+            CanvasAlpha,
         }
 
-        foreach (var id in _pendingIds)
+        [Serializable]
+        public struct Definition
         {
-            LeanTween.cancel(id);
+            public TransitionProperty Property;
+            public Object Object;
+
+            public float FromFloat;
+            public float ToFloat;
+
+            public Color FromColor;
+            public Color ToColor;
+
+            [Min(0)]
+            public float Duration;
+            public LeanTweenType Ease;
         }
-        _pendingIds.Clear();
 
-        foreach (var transition in Transitions)
+        public Definition[] Transitions;
+
+        private readonly List<int> _pendingIds = new List<int>();
+        private bool _currentState;
+
+        public void Start()
         {
-            LTDescr tween = null;
+            SwitchState(false, false);
+        }
 
-            switch (transition.Property)
+        public void SwitchState(bool enabled, bool animate)
+        {
+            _currentState = enabled;
+
+            if (Transitions == null || Transitions.Length == 0)
             {
-                case TransitionProperty.ScaleX:
+                return;
+            }
+
+            foreach (var id in _pendingIds)
+            {
+                LeanTween.cancel(id);
+            }
+
+            _pendingIds.Clear();
+
+            foreach (var transition in Transitions)
+            {
+                LTDescr tween = null;
+
+                switch (transition.Property)
+                {
+                    case TransitionProperty.ScaleX:
                     {
                         var element = transition.Object as FlexElement;
                         if (element == null)
@@ -104,9 +107,9 @@ public class FlexTransition : MonoBehaviour
                             element.SetLayoutDirty();
                         }
                     }
-                    break;
+                        break;
 
-                case TransitionProperty.ScaleY:
+                    case TransitionProperty.ScaleY:
                     {
                         var element = transition.Object as FlexElement;
                         if (element == null)
@@ -136,9 +139,9 @@ public class FlexTransition : MonoBehaviour
                             element.SetLayoutDirty();
                         }
                     }
-                    break;
+                        break;
 
-                case TransitionProperty.ImageColor:
+                    case TransitionProperty.ImageColor:
                     {
                         var image = transition.Object as Image;
                         if (image == null)
@@ -165,9 +168,9 @@ public class FlexTransition : MonoBehaviour
                             image.color = targetValue;
                         }
                     }
-                    break;
+                        break;
 
-                case TransitionProperty.TextColor:
+                    case TransitionProperty.TextColor:
                     {
                         var text = transition.Object as TMP_Text;
                         if (text == null)
@@ -194,9 +197,9 @@ public class FlexTransition : MonoBehaviour
                             text.color = targetValue;
                         }
                     }
-                    break;
+                        break;
 
-                case TransitionProperty.CanvasAlpha:
+                    case TransitionProperty.CanvasAlpha:
                     {
                         var canvas = transition.Object as CanvasGroup;
                         if (canvas == null)
@@ -214,9 +217,9 @@ public class FlexTransition : MonoBehaviour
                             canvas.alpha = targetValue;
                         }
                     }
-                    break;
+                        break;
 
-                default:
+                    default:
                     {
                         var element = transition.Object as FlexElement;
                         if (element == null)
@@ -246,101 +249,102 @@ public class FlexTransition : MonoBehaviour
                             element.SetLayoutDirty();
                         }
                     }
-                    break;
-            }
+                        break;
+                }
 
-            if (tween != null)
-            {
-                _pendingIds.Add(tween.uniqueId);
+                if (tween != null)
+                {
+                    _pendingIds.Add(tween.uniqueId);
+                }
             }
         }
-    }
 
-    public void SwitchState(bool enabled) => SwitchState(enabled, true);
+        public void SwitchState(bool enabled) => SwitchState(enabled, true);
 
-    public void ToggleState() => SwitchState(!_currentState);
+        public void ToggleState() => SwitchState(!_currentState);
 
-    private static ref float Property(FlexElement element, TransitionProperty property)
-    {
-        switch (property)
+        private static ref float Property(FlexElement element, TransitionProperty property)
         {
-            case TransitionProperty.PaddingLeft:
-                return ref element.Padding.left;
-            case TransitionProperty.PaddingRight:
-                return ref element.Padding.right;
-            case TransitionProperty.PaddingTop:
-                return ref element.Padding.top;
-            case TransitionProperty.PaddingBottom:
-                return ref element.Padding.bottom;
-            case TransitionProperty.Gap:
-                return ref element.Gap;
-            case TransitionProperty.MinWidth:
-                return ref element.MinWidth.Value;
-            case TransitionProperty.MinHeight:
-                return ref element.MinHeight.Value;
-            case TransitionProperty.MaxWidth:
-                return ref element.MaxWidth.Value;
-            case TransitionProperty.MaxHeight:
-                return ref element.MaxHeight.Value;
-            default:
-                throw new NotSupportedException($"{nameof(TransitionProperty)} {property}");
+            switch (property)
+            {
+                case TransitionProperty.PaddingLeft:
+                    return ref element.Padding.left;
+                case TransitionProperty.PaddingRight:
+                    return ref element.Padding.right;
+                case TransitionProperty.PaddingTop:
+                    return ref element.Padding.top;
+                case TransitionProperty.PaddingBottom:
+                    return ref element.Padding.bottom;
+                case TransitionProperty.Gap:
+                    return ref element.Gap;
+                case TransitionProperty.MinWidth:
+                    return ref element.MinWidth.Value;
+                case TransitionProperty.MinHeight:
+                    return ref element.MinHeight.Value;
+                case TransitionProperty.MaxWidth:
+                    return ref element.MaxWidth.Value;
+                case TransitionProperty.MaxHeight:
+                    return ref element.MaxHeight.Value;
+                default:
+                    throw new NotSupportedException($"{nameof(TransitionProperty)} {property}");
+            }
         }
-    }
 
 #if UNITY_EDITOR
-    public static float GetCurrentValueFloat(Object obj, TransitionProperty property)
-    {
-        switch (property)
+        public static float GetCurrentValueFloat(Object obj, TransitionProperty property)
         {
-            case TransitionProperty.ScaleX:
+            switch (property)
+            {
+                case TransitionProperty.ScaleX:
                 {
                     var element = obj as FlexElement;
                     return element != null ? element.transform.localScale.x : 0;
                 }
 
-            case TransitionProperty.ScaleY:
+                case TransitionProperty.ScaleY:
                 {
                     var element = obj as FlexElement;
                     return element != null ? element.transform.localScale.y : 0;
                 }
 
-            case TransitionProperty.CanvasAlpha:
+                case TransitionProperty.CanvasAlpha:
                 {
                     var canvas = obj as CanvasGroup;
                     return canvas != null ? canvas.alpha : 0;
                 }
 
-            case TransitionProperty.ImageColor:
-            case TransitionProperty.TextColor:
-                return 0f;
+                case TransitionProperty.ImageColor:
+                case TransitionProperty.TextColor:
+                    return 0f;
 
-            default:
+                default:
                 {
                     var element = obj as FlexElement;
                     return element != null ? Property(element, property) : 0;
                 }
+            }
         }
-    }
 
-    public static Color GetCurrentValueColor(Object obj, TransitionProperty property)
-    {
-        switch (property)
+        public static Color GetCurrentValueColor(Object obj, TransitionProperty property)
         {
-            case TransitionProperty.ImageColor:
+            switch (property)
+            {
+                case TransitionProperty.ImageColor:
                 {
                     var image = obj as Image;
                     return image != null ? image.color : Color.black;
                 }
 
-            case TransitionProperty.TextColor:
+                case TransitionProperty.TextColor:
                 {
                     var text = obj as TMP_Text;
                     return text != null ? text.color : Color.black;
                 }
 
-            default:
-                return Color.black;
+                default:
+                    return Color.black;
+            }
         }
-    }
 #endif
+    }
 }

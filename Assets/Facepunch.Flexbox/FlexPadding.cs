@@ -1,23 +1,26 @@
 ﻿using System;
 
-[Serializable]
-public struct FlexPadding
+namespace Facepunch.Flexbox
 {
-    public float left;
-    public float right;
-    public float top;
-    public float bottom;
-
-    public FlexPadding(float value)
+    [Serializable]
+    public struct FlexPadding
     {
-        left = right = top = bottom = value;
-    }
+        public float left;
+        public float right;
+        public float top;
+        public float bottom;
 
-    public FlexPadding(float left, float right, float top, float bottom)
-    {
-        this.left = left;
-        this.right = right;
-        this.top = top;
-        this.bottom = bottom;
+        public FlexPadding(float value)
+        {
+            left = right = top = bottom = value;
+        }
+
+        public FlexPadding(float left, float right, float top, float bottom)
+        {
+            this.left = left;
+            this.right = right;
+            this.top = top;
+            this.bottom = bottom;
+        }
     }
 }
