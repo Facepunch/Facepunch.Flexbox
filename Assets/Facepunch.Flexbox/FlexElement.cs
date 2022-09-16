@@ -125,18 +125,20 @@ namespace Facepunch.Flexbox
             var width = rect.width;
             var height = rect.height;
 
+            var nonAbsoluteRootOverride = !IsAbsolute && IsPrefabRoot();
+            var autoSizeX = AutoSizeX || nonAbsoluteRootOverride;
+            var autoSizeY = AutoSizeY || nonAbsoluteRootOverride;
+
             var node = (IFlexNode)this;
             node.MeasureHorizontal();
-            node.LayoutHorizontal(AutoSizeX ? _prefWidth : width, AutoSizeY ? _prefHeight : height);
+            node.LayoutHorizontal(autoSizeX ? _prefWidth : width, autoSizeY ? _prefHeight : height);
             node.MeasureVertical();
-            node.LayoutVertical(AutoSizeX ? _prefWidth : width, AutoSizeY ? _prefHeight : height);
+            node.LayoutVertical(autoSizeX ? _prefWidth : width, autoSizeY ? _prefHeight : height);
 
             _isDoingLayout = true;
             try
             {
-                var isRoot = IsPrefabRoot();
-
-                if (AutoSizeX || isRoot)
+                if (autoSizeX)
                 {
                     //Debug.Log($"w={_prefWidth}");
                     rectTransform.SetSizeWithCurrentAnchors(RectTransform.Axis.Horizontal, _prefWidth);
@@ -146,7 +148,7 @@ namespace Facepunch.Flexbox
 #endif
                 }
 
-                if (AutoSizeY || isRoot)
+                if (autoSizeY)
                 {
                     //Debug.Log($"h={_prefHeight}");
                     rectTransform.SetSizeWithCurrentAnchors(RectTransform.Axis.Vertical, _prefHeight);
@@ -365,7 +367,7 @@ namespace Facepunch.Flexbox
                 if (horizontal) child.LayoutHorizontal(childParams.Size, float.PositiveInfinity);
                 else child.LayoutVertical(float.PositiveInfinity, childParams.Size);
 
-                //Debug.Log($"({name}) main: min={childMinMain} max={childMaxMain} pref={childPrefMain} clamped={clampedMainSize}", child.Transform);
+                //Debug.Log($"({name}) main: min={childParams.MinSize} max={childParams.MaxSize} size={childParams.Size}", child.Transform);
 
                 child.GetScale(out var childScaleX, out var childScaleY);
                 var scaledMainSize = childParams.Size * (horizontal ? childScaleX : childScaleY);

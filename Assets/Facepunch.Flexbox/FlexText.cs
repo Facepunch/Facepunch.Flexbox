@@ -104,6 +104,8 @@ namespace Facepunch.Flexbox
             _preferredWidth = preferredSize.x;
             _preferredHeight = preferredSize.y;
 
+            //Debug.Log($"text horizontal prefW={_preferredWidth} prefH={_preferredHeight}");
+
             Profiler.EndSample();
         }
 
@@ -118,11 +120,12 @@ namespace Facepunch.Flexbox
 
             var rt = (RectTransform)transform;
             var size = rt.sizeDelta;
-            //Debug.Log($"text vertical w={size.x}");
 
             var preferredSize = GetPreferredValues(size.x, float.PositiveInfinity);
             _preferredWidth = preferredSize.x;
             _preferredHeight = preferredSize.y;
+
+            //Debug.Log($"text vertical w={size.x} prefW={_preferredWidth} prefH={_preferredHeight}");
 
             Profiler.EndSample();
         }
