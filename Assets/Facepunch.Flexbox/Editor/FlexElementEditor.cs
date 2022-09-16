@@ -1,4 +1,5 @@
-﻿using UnityEditor;
+﻿using Facepunch.Flexbox.Utility;
+using UnityEditor;
 
 namespace Facepunch.Flexbox
 {
@@ -56,10 +57,17 @@ namespace Facepunch.Flexbox
             if (!serializedObject.isEditingMultipleObjects && !_isAbsolute.boolValue)
             {
                 var elem = (FlexElement)serializedObject.targetObject;
-                var parentObj = elem.transform.parent;
-                if (parentObj == null || !parentObj.TryGetComponent<FlexElement>(out _))
+                if (!FlexUtility.IsPrefabRoot(elem.gameObject))
                 {
-                    EditorGUILayout.HelpBox("This element has no parent FlexElement, it should probably be marked as absolute.", MessageType.Warning);
+                    var parentObj = elem.transform.parent;
+                    if (parentObj == null || !parentObj.TryGetComponent<FlexElement>(out _))
+                    {
+                        EditorGUILayout.HelpBox("This element has no parent FlexElement. It should probably be marked as absolute.", MessageType.Warning);
+                    }
+                }
+                else
+                {
+                    EditorGUILayout.HelpBox("If this prefab will not spawn parented to another FlexElement then IsAbsolute should be enabled.", MessageType.Info);
                 }
             }
 

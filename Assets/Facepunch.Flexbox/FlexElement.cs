@@ -1,12 +1,9 @@
 ﻿using System;
 using System.Collections.Generic;
+using Facepunch.Flexbox.Utility;
 using UnityEngine;
 using UnityEngine.EventSystems;
 using UnityEngine.Profiling;
-
-#if UNITY_EDITOR
-using UnityEditor.Experimental.SceneManagement;
-#endif
 
 namespace Facepunch.Flexbox
 {
@@ -101,22 +98,6 @@ namespace Facepunch.Flexbox
             }
         }
 
-        private bool IsPrefabRoot()
-        {
-#if UNITY_EDITOR
-            if (Application.isPlaying)
-            {
-                return false;
-            }
-
-            var thisGo = gameObject;
-            var stage = PrefabStageUtility.GetPrefabStage(thisGo);
-            return stage != null && ReferenceEquals(stage.prefabContentsRoot, thisGo);
-#else
-            return false;
-#endif
-        }
-
         internal void PerformLayout()
         {
             var rectTransform = (RectTransform)transform;
@@ -125,7 +106,7 @@ namespace Facepunch.Flexbox
             var width = rect.width;
             var height = rect.height;
 
-            var nonAbsoluteRootOverride = !IsAbsolute && IsPrefabRoot();
+            var nonAbsoluteRootOverride = !IsAbsolute && FlexUtility.IsPrefabRoot(gameObject);
             var autoSizeX = AutoSizeX || nonAbsoluteRootOverride;
             var autoSizeY = AutoSizeY || nonAbsoluteRootOverride;
 
