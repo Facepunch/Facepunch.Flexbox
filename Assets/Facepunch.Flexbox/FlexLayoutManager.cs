@@ -1,6 +1,9 @@
-﻿using System;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using UnityEngine;
+
+#if UNITY_EDITOR
+using UnityEditor;
+#endif
 
 namespace Facepunch.Flexbox
 {
@@ -9,8 +12,12 @@ namespace Facepunch.Flexbox
     {
         public static FlexLayoutManager Instance { get; private set; }
 
-        private readonly List<FlexElement> _dirtyElements = new List<FlexElement>();
-        private readonly List<FlexElement> _updatingElements = new List<FlexElement>();
+        private static readonly List<FlexElement> DirtyElements = new List<FlexElement>();
+        private static readonly List<FlexElement> UpdatingElements = new List<FlexElement>();
+
+#if UNITY_EDITOR
+        private static bool EditorHookedUpdate = false;
+#endif
 
         public void OnEnable()
         {
@@ -33,28 +40,7 @@ namespace Facepunch.Flexbox
 
         public void LateUpdate()
         {
-            if (_dirtyElements.Count == 0)
-            {
-                return;
-            }
-
-            _updatingElements.AddRange(_dirtyElements);
-            _dirtyElements.Clear();
-
-            try
-            {
-                foreach (var element in _updatingElements)
-                {
-                    if (element != null)
-                    {
-                        element.PerformLayout();
-                    }
-                }
-            }
-            finally
-            {
-                _updatingElements.Clear();
-            }
+            FlushQueue();
         }
 
         public static void EnqueueLayout(FlexElement element)
@@ -69,26 +55,51 @@ namespace Facepunch.Flexbox
 #if UNITY_EDITOR
                 if (!Application.isPlaying)
                 {
-                    try
+                    if (!EditorHookedUpdate)
                     {
-                        element.PerformLayout();
-                    }
-                    catch (Exception e)
-                    {
-                        Debug.LogError(e);
+                        EditorApplication.update += FlushQueue;
+                        EditorHookedUpdate = true;
                     }
 
+                    EditorApplication.QueuePlayerLoopUpdate();
+                }
+                else
+#endif
+                {
+                    Debug.LogWarning("There is no FlexLayoutManager!");
                     return;
                 }
-#endif
+            }
 
-                Debug.LogWarning("There is no FlexLayoutManager!");
+            if (!DirtyElements.Contains(element))
+            {
+                DirtyElements.Add(element);
+            }
+        }
+
+        private static void FlushQueue()
+        {
+            if (DirtyElements.Count == 0)
+            {
                 return;
             }
 
-            if (!Instance._dirtyElements.Contains(element))
+            UpdatingElements.AddRange(DirtyElements);
+            DirtyElements.Clear();
+
+            try
             {
-                Instance._dirtyElements.Add(element);
+                foreach (var element in UpdatingElements)
+                {
+                    if (element != null)
+                    {
+                        element.PerformLayout();
+                    }
+                }
+            }
+            finally
+            {
+                UpdatingElements.Clear();
             }
         }
     }

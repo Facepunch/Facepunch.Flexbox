@@ -4,6 +4,10 @@ using UnityEngine;
 using UnityEngine.EventSystems;
 using UnityEngine.Profiling;
 
+#if UNITY_EDITOR
+using UnityEditor.Experimental.SceneManagement;
+#endif
+
 namespace Facepunch.Flexbox
 {
     [ExecuteAlways]
@@ -87,7 +91,7 @@ namespace Facepunch.Flexbox
             _isDirty = true;
 
             var parent = transform.parent;
-            if (parent == null || !parent.TryGetComponent<IFlexNode>(out var parentNode))
+            if (IsAbsolute || parent == null || !parent.TryGetComponent<IFlexNode>(out var parentNode))
             {
                 FlexLayoutManager.EnqueueLayout(this);
             }
@@ -95,6 +99,22 @@ namespace Facepunch.Flexbox
             {
                 parentNode.SetLayoutDirty(force);
             }
+        }
+
+        private bool IsPrefabRoot()
+        {
+#if UNITY_EDITOR
+            if (Application.isPlaying)
+            {
+                return false;
+            }
+
+            var thisGo = gameObject;
+            var stage = PrefabStageUtility.GetPrefabStage(thisGo);
+            return stage != null && ReferenceEquals(stage.prefabContentsRoot, thisGo);
+#else
+            return false;
+#endif
         }
 
         internal void PerformLayout()
@@ -114,7 +134,9 @@ namespace Facepunch.Flexbox
             _isDoingLayout = true;
             try
             {
-                if (AutoSizeX)
+                var isRoot = IsPrefabRoot();
+
+                if (AutoSizeX || isRoot)
                 {
                     //Debug.Log($"w={_prefWidth}");
                     rectTransform.SetSizeWithCurrentAnchors(RectTransform.Axis.Horizontal, _prefWidth);
@@ -124,7 +146,7 @@ namespace Facepunch.Flexbox
 #endif
                 }
 
-                if (AutoSizeY)
+                if (AutoSizeY || isRoot)
                 {
                     //Debug.Log($"h={_prefHeight}");
                     rectTransform.SetSizeWithCurrentAnchors(RectTransform.Axis.Vertical, _prefHeight);
