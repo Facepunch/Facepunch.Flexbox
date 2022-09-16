@@ -418,8 +418,8 @@ namespace Facepunch.Flexbox
             var horizontal = IsHorizontal;
             ref var prefSize = ref Pick(horizontal, ref _prefHeight, ref _prefWidth);
             var padding = horizontal
-                ? Padding.left + Padding.right
-                : Padding.top + Padding.bottom;
+                ? Padding.top + Padding.bottom
+                : Padding.left + Padding.right;
 
             var crossAxisPreferredSize = 0f;
             foreach (var child in _children)
