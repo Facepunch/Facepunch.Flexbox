@@ -461,11 +461,12 @@ namespace Facepunch.Flexbox
                 child.GetScale(out var childScaleX, out var childScaleY);
                 child.GetPreferredSize(out var childPreferredWidth, out var childPreferredHeight);
 
+                var childScaleCross = horizontal ? childScaleY : childScaleX;
                 var childAlign = child.AlignSelf.GetValueOrDefault(AlignItems);
                 var childMinCross = CalculateLengthValue(horizontal ? child.MinHeight : child.MinWidth, innerSize, 0);
                 var childMaxCross = CalculateLengthValue(horizontal ? child.MaxHeight : child.MaxWidth, innerSize, float.PositiveInfinity);
                 var childPrefCross = horizontal ? childPreferredHeight : childPreferredWidth;
-                var crossSize = childAlign == FlexAlign.Stretch ? innerSize : childPrefCross;
+                var crossSize = childAlign == FlexAlign.Stretch ? innerSize / childScaleCross : childPrefCross;
                 var clampedCrossSize = Mathf.Clamp(Mathf.Min(crossSize, innerSize), childMinCross, childMaxCross);
 
                 var layoutMaxWidth = horizontal ? float.PositiveInfinity : clampedCrossSize;
