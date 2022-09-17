@@ -53,23 +53,28 @@ namespace Facepunch.Flexbox
             if (Instance == null)
             {
 #if UNITY_EDITOR
-                if (!Application.isPlaying)
+                if (!EditorHookedUpdate)
                 {
-                    if (!EditorHookedUpdate)
-                    {
-                        EditorApplication.update += FlushQueue;
-                        EditorHookedUpdate = true;
-                    }
+                    EditorApplication.update += FlushQueue;
+                    EditorHookedUpdate = true;
+                }
 
-                    EditorApplication.QueuePlayerLoopUpdate();
-                }
-                else
+                EditorApplication.QueuePlayerLoopUpdate();
+#else
+                Debug.LogWarning("There is no FlexLayoutManager!");
+                return;
 #endif
-                {
-                    Debug.LogWarning("There is no FlexLayoutManager!");
-                    return;
-                }
             }
+            else if (!Instance.isActiveAndEnabled)
+            {
+                Debug.LogWarning("FlexLayoutManager is not active!");
+            }      
+
+#if UNITY_EDITOR
+            // Unity does something weird when switching to/from play mode... this will be called with a valid element,
+            // but it'll turn null when we atually switch modes, yet it's still equal to the (new?) element
+            DirtyElements.RemoveAll(e => e == null);
+#endif
 
             if (!DirtyElements.Contains(element))
             {

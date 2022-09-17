@@ -462,12 +462,14 @@ namespace Facepunch.Flexbox
                 child.GetPreferredSize(out var childPreferredWidth, out var childPreferredHeight);
 
                 var childScaleCross = horizontal ? childScaleY : childScaleX;
+                var scaledInnerSize = innerSize / childScaleCross;
+
                 var childAlign = child.AlignSelf.GetValueOrDefault(AlignItems);
-                var childMinCross = CalculateLengthValue(horizontal ? child.MinHeight : child.MinWidth, innerSize, 0);
-                var childMaxCross = CalculateLengthValue(horizontal ? child.MaxHeight : child.MaxWidth, innerSize, float.PositiveInfinity);
+                var childMinCross = CalculateLengthValue(horizontal ? child.MinHeight : child.MinWidth, scaledInnerSize, 0);
+                var childMaxCross = CalculateLengthValue(horizontal ? child.MaxHeight : child.MaxWidth, scaledInnerSize, float.PositiveInfinity);
                 var childPrefCross = horizontal ? childPreferredHeight : childPreferredWidth;
-                var crossSize = childAlign == FlexAlign.Stretch ? innerSize / childScaleCross : childPrefCross;
-                var clampedCrossSize = Mathf.Clamp(Mathf.Min(crossSize, innerSize), childMinCross, childMaxCross);
+                var crossSize = childAlign == FlexAlign.Stretch ? scaledInnerSize : childPrefCross;
+                var clampedCrossSize = Mathf.Clamp(crossSize, childMinCross, childMaxCross);
 
                 var layoutMaxWidth = horizontal ? float.PositiveInfinity : clampedCrossSize;
                 var layoutMaxHeight = horizontal ? clampedCrossSize : float.PositiveInfinity;
@@ -658,12 +660,14 @@ namespace Facepunch.Flexbox
 
         protected override void OnRectTransformDimensionsChange() => SetLayoutDirty();
 
+        protected override void OnBeforeTransformParentChanged() => SetLayoutDirty();
+
         protected override void OnTransformParentChanged() => SetLayoutDirty();
 
         protected virtual void OnTransformChildrenChanged() => SetLayoutDirty();
 
 #if UNITY_EDITOR
-        protected override void OnValidate() => SetLayoutDirty();
+        protected override void OnValidate() => SetLayoutDirty(true);
 #endif
     }
 }
