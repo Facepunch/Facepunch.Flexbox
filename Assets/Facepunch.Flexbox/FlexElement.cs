@@ -234,6 +234,7 @@ namespace Facepunch.Flexbox
             var innerSize = horizontal
                 ? maxWidth - Padding.left - Padding.right
                 : maxHeight - Padding.top - Padding.bottom;
+            var innerSizeMinusGap = innerSize - _children.Count * Gap;
 
             SizingChildren.Clear();
             if (_childSizes.Length < _children.Count) Array.Resize(ref _childSizes, _children.Count);
@@ -245,8 +246,8 @@ namespace Facepunch.Flexbox
                 var child = _children[i];
                 ref var childParams = ref _childSizes[i];
 
-                var childMinMain = CalculateLengthValue(horizontal ? child.MinWidth : child.MinHeight, innerSize, 0);
-                var childMaxMain = CalculateLengthValue(horizontal ? child.MaxWidth : child.MaxHeight, innerSize, float.PositiveInfinity);
+                var childMinMain = CalculateLengthValue(horizontal ? child.MinWidth : child.MinHeight, innerSizeMinusGap, 0);
+                var childMaxMain = CalculateLengthValue(horizontal ? child.MaxWidth : child.MaxHeight, innerSizeMinusGap, float.PositiveInfinity);
                 var childFlexible = childMinMain < childMaxMain;
 
                 child.GetPreferredSize(out var childPreferredWidth, out var childPreferredHeight);
