@@ -1,0 +1,92 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!1 &4225030332511888461
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 7273660918521251046}
+  - component: {fileID: 5261952298187541917}
+  - component: {fileID: 1979445183735512981}
+  m_Layer: 5
+  m_Name: col-is-4
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!224 &7273660918521251046
+RectTransform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 4225030332511888461}
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_Children: []
+  m_Father: {fileID: 0}
+  m_RootOrder: 0
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+  m_AnchorMin: {x: 0, y: 1}
+  m_AnchorMax: {x: 0, y: 1}
+  m_AnchoredPosition: {x: 0, y: 0}
+  m_SizeDelta: {x: 0, y: 0}
+  m_Pivot: {x: 0, y: 1}
+--- !u!114 &5261952298187541917
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 4225030332511888461}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 997216c9ace3f4e469cb609042c036f3, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  FlexDirection: 2
+  JustifyContent: 2
+  AlignItems: 3
+  Padding:
+    left: 0
+    right: 0
+    top: 0
+    bottom: 0
+  Gap: 0
+  Grow: 1
+  AlignSelf:
+    HasValue: 0
+    Value: 0
+  Shrink: 1
+  IsAbsolute: 0
+  AutoSizeX: 0
+  AutoSizeY: 0
+  MinWidth:
+    HasValue: 1
+    Value: 33.33333
+    Unit: 1
+  MaxWidth:
+    HasValue: 1
+    Value: 33.33333
+    Unit: 1
+  MinHeight:
+    HasValue: 0
+    Value: 80
+    Unit: 1
+  MaxHeight:
+    HasValue: 0
+    Value: 0
+    Unit: 0
+--- !u!222 &1979445183735512981
+CanvasRenderer:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 4225030332511888461}
+  m_CullTransparentMesh: 0
