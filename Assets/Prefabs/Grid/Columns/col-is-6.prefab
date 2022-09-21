@@ -58,7 +58,7 @@ MonoBehaviour:
     top: 0
     bottom: 0
   Gap: 0
-  Grow: 1
+  Grow: 0
   AlignSelf:
     HasValue: 0
     Value: 0
