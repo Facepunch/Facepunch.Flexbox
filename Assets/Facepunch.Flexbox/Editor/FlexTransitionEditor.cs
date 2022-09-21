@@ -74,6 +74,11 @@ namespace Facepunch.Flexbox
                 label = new GUIContent("CanvasGroup");
                 type = typeof(CanvasGroup);
             }
+            else if (propertyType == FlexTransition.TransitionProperty.RotationZ)
+            {
+                label = new GUIContent("Transform");
+                type = typeof(Transform);
+            }
             else
             {
                 label = new GUIContent("Element");

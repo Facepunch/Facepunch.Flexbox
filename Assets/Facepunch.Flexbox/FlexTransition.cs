@@ -26,6 +26,7 @@ namespace Facepunch.Flexbox
             ImageColor,
             TextColor,
             CanvasAlpha,
+            RotationZ,
         }
 
         [Serializable]
@@ -71,187 +72,9 @@ namespace Facepunch.Flexbox
 
             _pendingIds.Clear();
 
-            foreach (var transition in Transitions)
+            for (var i = 0; i < Transitions.Length; i++)
             {
-                LTDescr tween = null;
-
-                switch (transition.Property)
-                {
-                    case TransitionProperty.ScaleX:
-                    {
-                        var element = transition.Object as FlexElement;
-                        if (element == null)
-                        {
-                            break;
-                        }
-
-                        var targetValue = _currentState ? transition.ToFloat : transition.FromFloat;
-                        if (animate)
-                        {
-                            tween = LeanTween.scaleX(element.gameObject, targetValue, transition.Duration)
-                                .setEase(transition.Ease)
-                                .setOnUpdate((float value, object obj) =>
-                                {
-                                    var elem = (FlexElement)obj;
-                                    if (elem != null)
-                                    {
-                                        elem.SetLayoutDirty();
-                                    }
-                                }, element);
-                        }
-                        else
-                        {
-                            var scale = element.transform.localScale;
-                            scale.x = targetValue;
-                            element.transform.localScale = scale;
-                            element.SetLayoutDirty();
-                        }
-                    }
-                        break;
-
-                    case TransitionProperty.ScaleY:
-                    {
-                        var element = transition.Object as FlexElement;
-                        if (element == null)
-                        {
-                            break;
-                        }
-
-                        var targetValue = _currentState ? transition.ToFloat : transition.FromFloat;
-                        if (animate)
-                        {
-                            tween = LeanTween.scaleY(element.gameObject, targetValue, transition.Duration)
-                                .setEase(transition.Ease)
-                                .setOnUpdate((float value, object obj) =>
-                                {
-                                    var elem = (FlexElement)obj;
-                                    if (elem != null)
-                                    {
-                                        elem.SetLayoutDirty();
-                                    }
-                                }, element);
-                        }
-                        else
-                        {
-                            var scale = element.transform.localScale;
-                            scale.y = targetValue;
-                            element.transform.localScale = scale;
-                            element.SetLayoutDirty();
-                        }
-                    }
-                        break;
-
-                    case TransitionProperty.ImageColor:
-                    {
-                        var image = transition.Object as Image;
-                        if (image == null)
-                        {
-                            break;
-                        }
-
-                        var startValue = image.color;
-                        var targetValue = _currentState ? transition.ToColor : transition.FromColor;
-                        if (animate)
-                        {
-                            tween = LeanTween.value(image.gameObject, 0, 1, transition.Duration)
-                                .setEase(transition.Ease)
-                                .setOnUpdate((float value) =>
-                                {
-                                    if (image != null)
-                                    {
-                                        image.color = Color.Lerp(startValue, targetValue, value);
-                                    }
-                                });
-                        }
-                        else
-                        {
-                            image.color = targetValue;
-                        }
-                    }
-                        break;
-
-                    case TransitionProperty.TextColor:
-                    {
-                        var text = transition.Object as TMP_Text;
-                        if (text == null)
-                        {
-                            break;
-                        }
-
-                        var startValue = text.color;
-                        var targetValue = _currentState ? transition.ToColor : transition.FromColor;
-                        if (animate)
-                        {
-                            tween = LeanTween.value(text.gameObject, 0, 1, transition.Duration)
-                                .setEase(transition.Ease)
-                                .setOnUpdate((float value) =>
-                                {
-                                    if (text != null)
-                                    {
-                                        text.color = Color.Lerp(startValue, targetValue, value);
-                                    }
-                                });
-                        }
-                        else
-                        {
-                            text.color = targetValue;
-                        }
-                    }
-                        break;
-
-                    case TransitionProperty.CanvasAlpha:
-                    {
-                        var canvas = transition.Object as CanvasGroup;
-                        if (canvas == null)
-                        {
-                            break;
-                        }
-
-                        var targetValue = _currentState ? transition.ToFloat : transition.FromFloat;
-                        if (animate)
-                        {
-                            tween = LeanTween.alphaCanvas(canvas, targetValue, transition.Duration).setEase(transition.Ease);
-                        }
-                        else
-                        {
-                            canvas.alpha = targetValue;
-                        }
-                    }
-                        break;
-
-                    default:
-                    {
-                        var element = transition.Object as FlexElement;
-                        if (element == null)
-                        {
-                            break;
-                        }
-
-                        var property = transition.Property;
-                        var targetValue = _currentState ? transition.ToFloat : transition.FromFloat;
-                        if (animate)
-                        {
-                            tween = LeanTween.value(element.gameObject, Property(element, property), targetValue, transition.Duration)
-                                .setEase(transition.Ease)
-                                .setOnUpdate((float newValue, object _) =>
-                                {
-                                    // todo: remove GC using with pooling?
-                                    if (element != null)
-                                    {
-                                        Property(element, property) = newValue;
-                                        element.SetLayoutDirty();
-                                    }
-                                }, this);
-                        }
-                        else
-                        {
-                            Property(element, property) = targetValue;
-                            element.SetLayoutDirty();
-                        }
-                    }
-                        break;
-                }
-
+                var tween = RunTransitionImpl(in Transitions[i], animate);
                 if (tween != null)
                 {
                     _pendingIds.Add(tween.uniqueId);
@@ -262,6 +85,213 @@ namespace Facepunch.Flexbox
         public void SwitchState(bool enabled) => SwitchState(enabled, true);
 
         public void ToggleState() => SwitchState(!_currentState);
+
+        private LTDescr RunTransitionImpl(in Definition transition, bool animate)
+        {
+            LTDescr tween = null;
+
+            switch (transition.Property)
+            {
+                case TransitionProperty.ScaleX:
+                {
+                    var element = transition.Object as FlexElement;
+                    if (element == null)
+                    {
+                        break;
+                    }
+
+                    var targetValue = _currentState ? transition.ToFloat : transition.FromFloat;
+                    if (animate)
+                    {
+                        tween = LeanTween.scaleX(element.gameObject, targetValue, transition.Duration)
+                            .setEase(transition.Ease)
+                            .setOnUpdate((float value, object obj) =>
+                            {
+                                var elem = (FlexElement)obj;
+                                if (elem != null)
+                                {
+                                    elem.SetLayoutDirty();
+                                }
+                            }, element);
+                    }
+                    else
+                    {
+                        var scale = element.transform.localScale;
+                        scale.x = targetValue;
+                        element.transform.localScale = scale;
+                        element.SetLayoutDirty();
+                    }
+                }
+                    break;
+
+                case TransitionProperty.ScaleY:
+                {
+                    var element = transition.Object as FlexElement;
+                    if (element == null)
+                    {
+                        break;
+                    }
+
+                    var targetValue = _currentState ? transition.ToFloat : transition.FromFloat;
+                    if (animate)
+                    {
+                        tween = LeanTween.scaleY(element.gameObject, targetValue, transition.Duration)
+                            .setEase(transition.Ease)
+                            .setOnUpdate((float value, object obj) =>
+                            {
+                                var elem = (FlexElement)obj;
+                                if (elem != null)
+                                {
+                                    elem.SetLayoutDirty();
+                                }
+                            }, element);
+                    }
+                    else
+                    {
+                        var scale = element.transform.localScale;
+                        scale.y = targetValue;
+                        element.transform.localScale = scale;
+                        element.SetLayoutDirty();
+                    }
+                }
+                    break;
+
+                case TransitionProperty.ImageColor:
+                {
+                    var image = transition.Object as Image;
+                    if (image == null)
+                    {
+                        break;
+                    }
+
+                    var startValue = image.color;
+                    var targetValue = _currentState ? transition.ToColor : transition.FromColor;
+                    if (animate)
+                    {
+                        tween = LeanTween.value(image.gameObject, 0, 1, transition.Duration)
+                            .setEase(transition.Ease)
+                            .setOnUpdate((float value) =>
+                            {
+                                if (image != null)
+                                {
+                                    image.color = Color.Lerp(startValue, targetValue, value);
+                                }
+                            });
+                    }
+                    else
+                    {
+                        image.color = targetValue;
+                    }
+                }
+                    break;
+
+                case TransitionProperty.TextColor:
+                {
+                    var text = transition.Object as TMP_Text;
+                    if (text == null)
+                    {
+                        break;
+                    }
+
+                    var startValue = text.color;
+                    var targetValue = _currentState ? transition.ToColor : transition.FromColor;
+                    if (animate)
+                    {
+                        tween = LeanTween.value(text.gameObject, 0, 1, transition.Duration)
+                            .setEase(transition.Ease)
+                            .setOnUpdate((float value) =>
+                            {
+                                if (text != null)
+                                {
+                                    text.color = Color.Lerp(startValue, targetValue, value);
+                                }
+                            });
+                    }
+                    else
+                    {
+                        text.color = targetValue;
+                    }
+                }
+                    break;
+
+                case TransitionProperty.CanvasAlpha:
+                {
+                    var canvas = transition.Object as CanvasGroup;
+                    if (canvas == null)
+                    {
+                        break;
+                    }
+
+                    var targetValue = _currentState ? transition.ToFloat : transition.FromFloat;
+                    if (animate)
+                    {
+                        tween = LeanTween.alphaCanvas(canvas, targetValue, transition.Duration).setEase(transition.Ease);
+                    }
+                    else
+                    {
+                        canvas.alpha = targetValue;
+                    }
+                }
+                    break;
+
+                case TransitionProperty.RotationZ:
+                {
+                    var transform = transition.Object as Transform;
+                    if (transform == null)
+                    {
+                        break;
+                    }
+
+                    var targetValue = _currentState ? transition.ToFloat : transition.FromFloat;
+                    if (animate)
+                    {
+                        tween = LeanTween.rotateZ(transform.gameObject, targetValue, transition.Duration)
+                            .setEase(transition.Ease);
+                    }
+                    else
+                    {
+                        var angles = transform.localEulerAngles;
+                        angles.z = targetValue;
+                        transform.localEulerAngles = angles;
+                    }
+                }
+                    break;
+
+                default:
+                {
+                    var element = transition.Object as FlexElement;
+                    if (element == null)
+                    {
+                        break;
+                    }
+
+                    var property = transition.Property;
+                    var targetValue = _currentState ? transition.ToFloat : transition.FromFloat;
+                    if (animate)
+                    {
+                        tween = LeanTween.value(element.gameObject, Property(element, property), targetValue, transition.Duration)
+                            .setEase(transition.Ease)
+                            .setOnUpdate((float newValue, object _) =>
+                            {
+                                // todo: remove GC using with pooling?
+                                if (element != null)
+                                {
+                                    Property(element, property) = newValue;
+                                    element.SetLayoutDirty();
+                                }
+                            }, this);
+                    }
+                    else
+                    {
+                        Property(element, property) = targetValue;
+                        element.SetLayoutDirty();
+                    }
+                }
+                    break;
+            }
+
+            return tween;
+        }
 
         private static ref float Property(FlexElement element, TransitionProperty property)
         {
@@ -311,6 +341,12 @@ namespace Facepunch.Flexbox
                 {
                     var canvas = obj as CanvasGroup;
                     return canvas != null ? canvas.alpha : 0;
+                }
+
+                case TransitionProperty.RotationZ:
+                {
+                    var transform = obj as Transform;
+                    return transform != null ? transform.localEulerAngles.z : 0;
                 }
 
                 case TransitionProperty.ImageColor:
