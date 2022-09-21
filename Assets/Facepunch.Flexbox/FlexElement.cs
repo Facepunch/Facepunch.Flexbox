@@ -234,7 +234,7 @@ namespace Facepunch.Flexbox
             var innerSize = horizontal
                 ? maxWidth - Padding.left - Padding.right
                 : maxHeight - Padding.top - Padding.bottom;
-            var innerSizeMinusGap = innerSize - _children.Count * Gap;
+            var innerSizeMinusGap = innerSize - Mathf.Max(_children.Count - 1, 0) * Gap;
 
             SizingChildren.Clear();
             if (_childSizes.Length < _children.Count) Array.Resize(ref _childSizes, _children.Count);
