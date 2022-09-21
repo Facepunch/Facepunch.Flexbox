@@ -75,11 +75,11 @@ MonoBehaviour:
     Value: 16.66667
     Unit: 1
   MinHeight:
-    HasValue: 0
-    Value: 80
+    HasValue: 1
+    Value: 100
     Unit: 1
   MaxHeight:
-    HasValue: 1
+    HasValue: 0
     Value: 100
     Unit: 1
 --- !u!222 &2019884644724101529
