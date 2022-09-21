@@ -50,7 +50,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   FlexDirection: 2
-  JustifyContent: 2
+  JustifyContent: 0
   AlignItems: 3
   Padding:
     left: 0
@@ -58,7 +58,7 @@ MonoBehaviour:
     top: 0
     bottom: 0
   Gap: 0
-  Grow: 1
+  Grow: 0
   AlignSelf:
     HasValue: 0
     Value: 0
@@ -75,8 +75,8 @@ MonoBehaviour:
     Value: 8.3333
     Unit: 1
   MinHeight:
-    HasValue: 0
-    Value: 80
+    HasValue: 1
+    Value: 100
     Unit: 1
   MaxHeight:
     HasValue: 0
