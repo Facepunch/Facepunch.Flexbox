@@ -497,7 +497,7 @@ MonoBehaviour:
     right: 0
     top: 0
     bottom: 0
-  Gap: 8
+  Gap: 0
   Grow: 0
   AlignSelf:
     HasValue: 0
@@ -858,11 +858,11 @@ MonoBehaviour:
     top: 20
     bottom: 20
   Gap: 8
-  Grow: 1
+  Grow: 0
   AlignSelf:
     HasValue: 0
     Value: 0
-  Shrink: 0
+  Shrink: 1
   IsAbsolute: 0
   AutoSizeX: 0
   AutoSizeY: 0
