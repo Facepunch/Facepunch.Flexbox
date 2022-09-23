@@ -202,10 +202,11 @@ namespace Facepunch.Flexbox
 
             var minSize = horizontal ? MinWidth : MinHeight;
             var maxSize = horizontal ? MaxWidth : MaxHeight;
+            var basisClamp = Basis.HasValue && Basis.Unit == FlexUnit.Pixels ? Basis.Value : 0;
             var minClamp = minSize.HasValue && minSize.Unit == FlexUnit.Pixels ? minSize.Value : 0;
             var maxClamp = maxSize.HasValue && maxSize.Unit == FlexUnit.Pixels ? maxSize.Value : float.PositiveInfinity;
 
-            prefSize = Mathf.Clamp(mainAxisPreferredSize + padding, minClamp, maxClamp);
+            prefSize = Mathf.Clamp(mainAxisPreferredSize + padding, Mathf.Max(minClamp, basisClamp), maxClamp);
 
             if (IsAbsolute)
             {
