@@ -11,6 +11,7 @@ namespace Facepunch.Flexbox
         private SerializedProperty _justifyContent;
         private SerializedProperty _alignItems;
         private SerializedProperty _padding;
+        private SerializedProperty _basis;
         private SerializedProperty _gap;
         private SerializedProperty _grow;
         private SerializedProperty _shrink;
@@ -26,6 +27,7 @@ namespace Facepunch.Flexbox
             _justifyContent = serializedObject.FindProperty("JustifyContent");
             _alignItems = serializedObject.FindProperty("AlignItems");
             _padding = serializedObject.FindProperty("Padding");
+            _basis = serializedObject.FindProperty("Basis");
             _gap = serializedObject.FindProperty("Gap");
             _grow = serializedObject.FindProperty("Grow");
             _shrink = serializedObject.FindProperty("Shrink");
@@ -80,6 +82,7 @@ namespace Facepunch.Flexbox
                 }
                 else
                 {
+                    EditorGUILayout.PropertyField(_basis);
                     EditorGUILayout.PropertyField(_grow);
                     EditorGUILayout.PropertyField(_shrink);
                     EditorGUILayout.PropertyField(_alignSelf);

@@ -8,6 +8,9 @@ namespace Facepunch.Flexbox
     [DisallowMultipleComponent]
     public class FlexText : TMPro.TextMeshProUGUI, IFlexNode
     {
+        [Tooltip("Controls the initial size of the element before factoring in grow/shrink.")]
+        public FlexLength Basis;
+
         [Min(0), Tooltip("How much this flex element should grow relative to its siblings.")]
         public int Grow = 1;
 
@@ -40,11 +43,13 @@ namespace Facepunch.Flexbox
 
         protected override void OnDisable()
         {
+            base.OnDisable();
+
+            SetLayoutDirty();
+
 #if UNITY_EDITOR
             _drivenTracker.Clear();
 #endif
-
-            base.OnDisable();
         }
 
         public override void SetLayoutDirty()
@@ -80,6 +85,7 @@ namespace Facepunch.Flexbox
         FlexLength IFlexNode.MaxWidth => MaxWidth;
         FlexLength IFlexNode.MinHeight => MinHeight;
         FlexLength IFlexNode.MaxHeight => MaxHeight;
+        FlexLength IFlexNode.Basis => Basis;
         int IFlexNode.Grow => Grow;
         int IFlexNode.Shrink => Shrink;
         FlexAlignSelf IFlexNode.AlignSelf => AlignSelf;

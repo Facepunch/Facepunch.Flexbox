@@ -15,6 +15,7 @@ namespace Facepunch.Flexbox
         FlexLength MaxHeight { get; }
         int Grow { get; }
         int Shrink { get; }
+        FlexLength Basis { get; }
         FlexAlignSelf AlignSelf { get; }
 
         void SetLayoutDirty(bool force = false);

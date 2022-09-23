@@ -29,6 +29,9 @@ namespace Facepunch.Flexbox
         [Min(0), Tooltip("Spacing to add between each child flex item.")]
         public float Gap = 0;
 
+        [Tooltip("Controls the initial size of the element before factoring in grow/shrink.")]
+        public FlexLength Basis;
+
         [Min(0), Tooltip("How much this flex element should grow relative to its siblings.")]
         public int Grow = 0;
 
@@ -256,7 +259,8 @@ namespace Facepunch.Flexbox
                 child.GetScale(out var childScaleX, out var childScaleY);
                 var childScaleMain = horizontal ? childScaleX : childScaleY;
 
-                var startingMainSize = Mathf.Clamp(childPrefMain, childMinMain, childMaxMain);
+                var initialSize = CalculateLengthValue(child.Basis, innerSizeMinusGap, childPrefMain);
+                var startingMainSize = Mathf.Clamp(initialSize, childMinMain, childMaxMain);
 
                 childParams.Size = startingMainSize;
                 childParams.MinSize = childMinMain;
@@ -564,6 +568,7 @@ namespace Facepunch.Flexbox
         FlexLength IFlexNode.MaxWidth => MaxWidth;
         FlexLength IFlexNode.MinHeight => MinHeight;
         FlexLength IFlexNode.MaxHeight => MaxHeight;
+        FlexLength IFlexNode.Basis => Basis;
         int IFlexNode.Grow => Grow;
         int IFlexNode.Shrink => Shrink;
         FlexAlignSelf IFlexNode.AlignSelf => AlignSelf;
