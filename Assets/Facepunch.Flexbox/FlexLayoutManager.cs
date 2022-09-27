@@ -52,7 +52,7 @@ namespace Facepunch.Flexbox
 
 #if UNITY_EDITOR
             var scene = element.gameObject.scene;
-            if (!scene.IsValid() || !scene.isLoaded)
+            if (!scene.IsValid())
             {
                 return;
             }
