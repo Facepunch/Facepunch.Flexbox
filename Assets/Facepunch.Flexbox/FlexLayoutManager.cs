@@ -50,6 +50,14 @@ namespace Facepunch.Flexbox
                 return;
             }
 
+#if UNITY_EDITOR
+            var scene = element.gameObject.scene;
+            if (!scene.IsValid() || !scene.isLoaded)
+            {
+                return;
+            }
+#endif
+
             if (Instance == null)
             {
 #if UNITY_EDITOR
