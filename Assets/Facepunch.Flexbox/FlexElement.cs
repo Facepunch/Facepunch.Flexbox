@@ -56,10 +56,9 @@ namespace Facepunch.Flexbox
         private bool _isDirty;
         private bool _isDoingLayout;
         private float _prefWidth, _prefHeight;
-        private int _growSum, _shrinkSum;
         private readonly List<IFlexNode> _children = new List<IFlexNode>();
         private ChildSizingParameters[] _childSizes = Array.Empty<ChildSizingParameters>();
-
+        
         private struct ChildSizingParameters
         {
             public float Size;
@@ -159,8 +158,6 @@ namespace Facepunch.Flexbox
                 : Padding.top + Padding.bottom;
 
             var mainAxisPreferredSize = 0f;
-            var growSum = 0;
-            var shrinkSum = 0;
             var first = true;
             foreach (var child in _children)
             {
@@ -172,18 +169,7 @@ namespace Facepunch.Flexbox
 
                 child.GetScale(out var childScaleX, out var childScaleY);
                 child.GetPreferredSize(out var childPreferredWidth, out var childPreferredHeight);
-
-                var childMinSize = horizontal ? child.MinWidth : child.MinHeight;
-                var childMaxSize = horizontal ? child.MaxWidth : child.MaxHeight;
-                var hasFixedSize = childMinSize.HasValue && childMaxSize.HasValue &&
-                                   childMinSize.Unit == childMaxSize.Unit &&
-                                   childMinSize.Value >= childMaxSize.Value;
-                if (!hasFixedSize)
-                {
-                    growSum += child.Grow;
-                    shrinkSum += child.Shrink;
-                }
-
+                
                 var gap = first ? 0f : Gap;
                 if (horizontal)
                 {
@@ -222,9 +208,6 @@ namespace Facepunch.Flexbox
                 }
             }
 
-            _growSum = growSum;
-            _shrinkSum = shrinkSum;
-
             Profiler.EndSample();
         }
 
@@ -244,6 +227,8 @@ namespace Facepunch.Flexbox
             SizingChildren.Clear();
             if (_childSizes.Length < _children.Count) Array.Resize(ref _childSizes, _children.Count);
 
+            var lineGrowSum = 0;
+            var lineShrinkSum = 0;
             var prefMainContentSize = 0f;
             var first = true;
             for (var i = 0; i < _children.Count; i++)
@@ -260,6 +245,9 @@ namespace Facepunch.Flexbox
 
                 child.GetScale(out var childScaleX, out var childScaleY);
                 var childScaleMain = horizontal ? childScaleX : childScaleY;
+
+                lineGrowSum += child.Grow;
+                lineShrinkSum += child.Shrink;
 
                 var initialSize = CalculateLengthValue(child.Basis, innerSizeMinusGap, childPrefMain);
                 var startingMainSize = Mathf.Clamp(initialSize, childMinMain, childMaxMain);
@@ -291,8 +279,8 @@ namespace Facepunch.Flexbox
 
             while (SizingChildren.Exists(n => n != null))
             {
-                var growSum = _growSum;
-                var shrinkSum = _shrinkSum;
+                var growSum = lineGrowSum;
+                var shrinkSum = lineShrinkSum;
 
                 for (var i = 0; i < SizingChildren.Count; i++)
                 {
