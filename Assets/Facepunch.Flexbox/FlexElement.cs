@@ -287,10 +287,6 @@ namespace Facepunch.Flexbox
             var growthAllowance = Mathf.Max(innerSize - prefMainContentSize, 0);
             var shrinkAllowance = Mathf.Max(prefMainContentSize - innerSize, 0);
 
-            var actualMainSize = prefMainContentSize;
-            if (_growSum > 0 && growthAllowance > 0) actualMainSize = innerSize; // TODO: is this wrong when the growing element may be clamped?
-            else if (_shrinkSum > 0 && shrinkAllowance > 0) actualMainSize = innerSize;
-
             //Debug.Log($"({name}) main setup: w={maxWidth} h={maxHeight} inner={innerSize} pref={(horizontal ? _prefWidth : _prefHeight)} grow={growthAllowance} shrink={shrinkAllowance}", this);
 
             while (SizingChildren.Exists(n => n != null))
@@ -346,6 +342,13 @@ namespace Facepunch.Flexbox
                 }
             }
 
+            var actualMainSize = Gap * gapCount;
+            for (var i = 0; i < _children.Count; i++)
+            {
+                actualMainSize += _childSizes[i].Size * _childSizes[i].Scale;
+            }
+            actualMainSize = Mathf.Min(actualMainSize, innerSize);
+
             var extraGap = 0f;
             var extraOffset = 0f;
             if (JustifyContent == FlexJustify.SpaceBetween && gapCount > 0)
@@ -378,9 +381,6 @@ namespace Facepunch.Flexbox
 
                 //Debug.Log($"({name}) main: min={childParams.MinSize} max={childParams.MaxSize} size={childParams.Size}", child.Transform);
 
-                child.GetScale(out var childScaleX, out var childScaleY);
-                var scaledMainSize = childParams.Size * (horizontal ? childScaleX : childScaleY);
-
                 var childRt = child.Transform;
 
                 var childSizeDelta = childRt.sizeDelta;
@@ -392,7 +392,8 @@ namespace Facepunch.Flexbox
                 childRt.anchoredPosition = horizontal
                     ? new Vector2(mainAxisOffset, childAnchoredPos.y)
                     : new Vector2(childAnchoredPos.x, mainAxisOffset);
-
+                
+                var scaledMainSize = childParams.Size * childParams.Scale;
                 mainAxisOffset += horizontal
                     ? scaledMainSize + mainAxisSpacing
                     : -scaledMainSize - mainAxisSpacing;
