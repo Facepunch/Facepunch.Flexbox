@@ -238,7 +238,8 @@ namespace Facepunch.Flexbox
             var innerSize = horizontal
                 ? maxWidth - Padding.left - Padding.right
                 : maxHeight - Padding.top - Padding.bottom;
-            var innerSizeMinusGap = innerSize - Mathf.Max(_children.Count - 1, 0) * Gap;
+            var gapCount = Mathf.Max(_children.Count - 1, 0);
+            var innerSizeMinusGap = innerSize - Gap * gapCount;
 
             SizingChildren.Clear();
             if (_childSizes.Length < _children.Count) Array.Resize(ref _childSizes, _children.Count);
@@ -287,7 +288,7 @@ namespace Facepunch.Flexbox
             var shrinkAllowance = Mathf.Max(prefMainContentSize - innerSize, 0);
 
             var actualMainSize = prefMainContentSize;
-            if (_growSum > 0 && growthAllowance > 0) actualMainSize = innerSize;
+            if (_growSum > 0 && growthAllowance > 0) actualMainSize = innerSize; // TODO: is this wrong when the growing element may be clamped?
             else if (_shrinkSum > 0 && shrinkAllowance > 0) actualMainSize = innerSize;
 
             //Debug.Log($"({name}) main setup: w={maxWidth} h={maxHeight} inner={innerSize} pref={(horizontal ? _prefWidth : _prefHeight)} grow={growthAllowance} shrink={shrinkAllowance}", this);
@@ -345,6 +346,27 @@ namespace Facepunch.Flexbox
                 }
             }
 
+            var extraGap = 0f;
+            var extraOffset = 0f;
+            if (JustifyContent == FlexJustify.SpaceBetween && gapCount > 0)
+            {
+                extraGap = (innerSize - actualMainSize) / gapCount; // no spacing at flex start/end
+                actualMainSize = innerSize;
+            }
+            else if (JustifyContent == FlexJustify.SpaceAround)
+            {
+                extraGap = (innerSize - actualMainSize) / (gapCount + 1);
+                extraOffset = extraGap / 2; // half size spacing at flex start/end
+                actualMainSize = innerSize;
+            }
+            else if (JustifyContent == FlexJustify.SpaceEvenly)
+            {
+                extraGap = (innerSize - actualMainSize) / (gapCount + 2);
+                extraOffset = extraGap; // full size spacing at flex start/end
+                actualMainSize = innerSize;
+            }
+            
+            var mainAxisSpacing = Gap + extraGap;
             var mainAxisOffset = GetMainAxisStart(horizontal, reversed);
             for (var i = 0; i < _children.Count; i++)
             {
@@ -372,8 +394,8 @@ namespace Facepunch.Flexbox
                     : new Vector2(childAnchoredPos.x, mainAxisOffset);
 
                 mainAxisOffset += horizontal
-                    ? scaledMainSize + Gap
-                    : -scaledMainSize - Gap;
+                    ? scaledMainSize + mainAxisSpacing
+                    : -scaledMainSize - mainAxisSpacing;
             }
 
             Profiler.EndSample();
@@ -383,9 +405,12 @@ namespace Facepunch.Flexbox
                 switch (JustifyContent)
                 {
                     case FlexJustify.Start:
+                    case FlexJustify.SpaceBetween:
+                    case FlexJustify.SpaceAround:
+                    case FlexJustify.SpaceEvenly:
                         return isHorizontal
-                            ? (isReversed ? innerSize - actualMainSize + Padding.left : Padding.left)
-                            : -(isReversed ? innerSize - actualMainSize + Padding.top : Padding.top);
+                            ? (isReversed ? innerSize - actualMainSize + Padding.left + extraOffset : Padding.left + extraOffset)
+                            : -(isReversed ? innerSize - actualMainSize + Padding.top + extraOffset : Padding.top + extraOffset);
                     case FlexJustify.End:
                         return isHorizontal
                             ? (isReversed ? Padding.left : innerSize - actualMainSize + Padding.left)

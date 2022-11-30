@@ -13,6 +13,9 @@
         Start,
         End,
         Center,
+        SpaceBetween,
+        SpaceAround,
+        SpaceEvenly,
     }
 
     public enum FlexAlign
