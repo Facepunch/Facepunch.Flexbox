@@ -7,10 +7,10 @@ namespace Facepunch.Flexbox
 {
     internal struct FlexChildEnumerable : IEnumerable<IFlexNode>
     {
-        private readonly FlexElement _parent;
+        private readonly FlexElementBase _parent;
         private readonly bool _reversed;
 
-        public FlexChildEnumerable(FlexElement parent, bool reversed)
+        public FlexChildEnumerable(FlexElementBase parent, bool reversed)
         {
             _parent = parent;
             _reversed = reversed;
@@ -32,7 +32,7 @@ namespace Facepunch.Flexbox
 
         public IFlexNode Current { get; private set; }
 
-        public FlexChildEnumerator(FlexElement parent, bool reversed)
+        public FlexChildEnumerator(FlexElementBase parent, bool reversed)
         {
             _parent = parent.transform;
             _childCount = _parent.childCount;

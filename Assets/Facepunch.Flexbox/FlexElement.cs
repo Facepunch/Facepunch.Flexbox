@@ -10,7 +10,7 @@ namespace Facepunch.Flexbox
     [ExecuteAlways]
     [RequireComponent(typeof(RectTransform))]
     [DisallowMultipleComponent]
-    public class FlexElement : UIBehaviour, IFlexNode
+    public class FlexElement : FlexElementBase, IFlexNode
     {
         private static readonly List<IFlexNode> SizingChildren = new List<IFlexNode>();
 
@@ -29,34 +29,12 @@ namespace Facepunch.Flexbox
         [Min(0), Tooltip("Spacing to add between each child flex item.")]
         public float Gap = 0;
 
-        [Tooltip("Controls the initial size of the element before factoring in grow/shrink.")]
-        public FlexLength Basis;
-
-        [Min(0), Tooltip("How much this flex element should grow relative to its siblings.")]
-        public int Grow = 0;
-
-        [Tooltip("Optionally override the parent's cross axis alignment for this element.")]
-        public FlexAlignSelf AlignSelf;
-
-        [Min(0), Tooltip("How much this flex element should shrink relative to its siblings.")]
-        public int Shrink = 1;
-
         [Tooltip("Absolute elements act as the root container for any number of flex elements.")]
         public bool IsAbsolute;
 
         [Tooltip("Automatically resize an absolute element to match the size of its children.")]
         public bool AutoSizeX, AutoSizeY;
-
-        [Tooltip("The minimum allowed dimensions of this flex element.")]
-        public FlexLength MinWidth, MaxWidth;
-
-        [Tooltip("The maximum allowed dimensions of this flex element.")]
-        public FlexLength MinHeight, MaxHeight;
-
-        private bool _isDirty;
-        private bool _isDoingLayout;
-        private float _prefWidth, _prefHeight;
-        private readonly List<IFlexNode> _children = new List<IFlexNode>();
+        
         private ChildSizingParameters[] _childSizes = Array.Empty<ChildSizingParameters>();
         
         private struct ChildSizingParameters
@@ -68,37 +46,8 @@ namespace Facepunch.Flexbox
             public float Scale;
         }
 
-#if UNITY_EDITOR
-        private const DrivenTransformProperties ControlledProperties = DrivenTransformProperties.AnchoredPosition |
-                                                                       DrivenTransformProperties.SizeDelta |
-                                                                       DrivenTransformProperties.Anchors |
-                                                                       DrivenTransformProperties.Pivot |
-                                                                       DrivenTransformProperties.Rotation;
-        private DrivenRectTransformTracker _drivenTracker = new DrivenRectTransformTracker();
-#endif
-
         private bool IsHorizontal => FlexDirection == FlexDirection.Row || FlexDirection == FlexDirection.RowReverse;
-        private bool IsReversed => FlexDirection == FlexDirection.RowReverse || FlexDirection == FlexDirection.ColumnReverse;
-
-        public void SetLayoutDirty(bool force = false)
-        {
-            if (!force && (_isDoingLayout || !IsActive()))
-            {
-                return;
-            }
-
-            _isDirty = true;
-
-            var parent = transform.parent;
-            if (IsAbsolute || parent == null || !parent.TryGetComponent<IFlexNode>(out var parentNode))
-            {
-                FlexLayoutManager.EnqueueLayout(this);
-            }
-            else
-            {
-                parentNode.SetLayoutDirty(force);
-            }
-        }
+        protected override bool IsReversed => FlexDirection == FlexDirection.RowReverse || FlexDirection == FlexDirection.ColumnReverse;
 
         internal void PerformLayout()
         {
@@ -114,37 +63,61 @@ namespace Facepunch.Flexbox
 
             var node = (IFlexNode)this;
             node.MeasureHorizontal();
-            node.LayoutHorizontal(autoSizeX ? _prefWidth : width, autoSizeY ? _prefHeight : height);
+            node.LayoutHorizontal(autoSizeX ? PrefWidth : width, autoSizeY ? PrefHeight : height);
             node.MeasureVertical();
-            node.LayoutVertical(autoSizeX ? _prefWidth : width, autoSizeY ? _prefHeight : height);
+            node.LayoutVertical(autoSizeX ? PrefWidth : width, autoSizeY ? PrefHeight : height);
 
-            _isDoingLayout = true;
+            IsDoingLayout = true;
             try
             {
                 if (autoSizeX)
                 {
                     //Debug.Log($"w={_prefWidth}");
-                    rectTransform.SetSizeWithCurrentAnchors(RectTransform.Axis.Horizontal, _prefWidth);
+                    rectTransform.SetSizeWithCurrentAnchors(RectTransform.Axis.Horizontal, PrefWidth);
 
 #if UNITY_EDITOR
-                    _drivenTracker.Add(this, rectTransform, DrivenTransformProperties.SizeDeltaX);
+                    DrivenTracker.Add(this, rectTransform, DrivenTransformProperties.SizeDeltaX);
 #endif
                 }
 
                 if (autoSizeY)
                 {
                     //Debug.Log($"h={_prefHeight}");
-                    rectTransform.SetSizeWithCurrentAnchors(RectTransform.Axis.Vertical, _prefHeight);
+                    rectTransform.SetSizeWithCurrentAnchors(RectTransform.Axis.Vertical, PrefHeight);
 
 #if UNITY_EDITOR
-                    _drivenTracker.Add(this, rectTransform, DrivenTransformProperties.SizeDeltaY);
+                    DrivenTracker.Add(this, rectTransform, DrivenTransformProperties.SizeDeltaY);
 #endif
                 }
             }
             finally
             {
-                _isDoingLayout = false;
+                IsDoingLayout = false;
             }
+        }
+
+        protected override void MeasureHorizontalImpl()
+        {
+            if (IsHorizontal) MeasureMainAxis();
+            else MeasureCrossAxis();
+        }
+
+        protected override void LayoutHorizontalImpl(float maxWidth, float maxHeight)
+        {
+            if (IsHorizontal) LayoutMainAxis(maxWidth, maxHeight);
+            else LayoutCrossAxis(maxWidth, maxHeight);
+        }
+
+        protected override void MeasureVerticalImpl()
+        {
+            if (IsHorizontal) MeasureCrossAxis();
+            else MeasureMainAxis();
+        }
+
+        protected override void LayoutVerticalImpl(float maxWidth, float maxHeight)
+        {
+            if (IsHorizontal) LayoutCrossAxis(maxWidth, maxHeight);
+            else LayoutMainAxis(maxWidth, maxHeight);
         }
 
         private void MeasureMainAxis()
@@ -152,14 +125,14 @@ namespace Facepunch.Flexbox
             Profiler.BeginSample(nameof(MeasureMainAxis), this);
 
             var horizontal = IsHorizontal;
-            ref var prefSize = ref Pick(horizontal, ref _prefWidth, ref _prefHeight);
+            ref var prefSize = ref Pick(horizontal, ref PrefWidth, ref PrefHeight);
             var padding = horizontal
                 ? Padding.left + Padding.right
                 : Padding.top + Padding.bottom;
 
             var mainAxisPreferredSize = 0f;
             var first = true;
-            foreach (var child in _children)
+            foreach (var child in Children)
             {
                 if (child.IsDirty)
                 {
@@ -221,19 +194,19 @@ namespace Facepunch.Flexbox
             var innerSize = horizontal
                 ? maxWidth - Padding.left - Padding.right
                 : maxHeight - Padding.top - Padding.bottom;
-            var gapCount = Mathf.Max(_children.Count - 1, 0);
+            var gapCount = Mathf.Max(Children.Count - 1, 0);
             var innerSizeMinusGap = innerSize - Gap * gapCount;
 
             SizingChildren.Clear();
-            if (_childSizes.Length < _children.Count) Array.Resize(ref _childSizes, _children.Count);
+            if (_childSizes.Length < Children.Count) Array.Resize(ref _childSizes, Children.Count);
 
             var lineGrowSum = 0;
             var lineShrinkSum = 0;
             var prefMainContentSize = 0f;
             var first = true;
-            for (var i = 0; i < _children.Count; i++)
+            for (var i = 0; i < Children.Count; i++)
             {
-                var child = _children[i];
+                var child = Children[i];
                 ref var childParams = ref _childSizes[i];
 
                 var childMinMain = CalculateLengthValue(horizontal ? child.MinWidth : child.MinHeight, innerSizeMinusGap, 0);
@@ -331,7 +304,7 @@ namespace Facepunch.Flexbox
             }
 
             var actualMainSize = Gap * gapCount;
-            for (var i = 0; i < _children.Count; i++)
+            for (var i = 0; i < Children.Count; i++)
             {
                 actualMainSize += _childSizes[i].Size * _childSizes[i].Scale;
             }
@@ -359,9 +332,9 @@ namespace Facepunch.Flexbox
             
             var mainAxisSpacing = Gap + extraGap;
             var mainAxisOffset = GetMainAxisStart(horizontal, reversed);
-            for (var i = 0; i < _children.Count; i++)
+            for (var i = 0; i < Children.Count; i++)
             {
-                var child = _children[i];
+                var child = Children[i];
                 ref var childParams = ref _childSizes[i];
 
                 if (horizontal) child.LayoutHorizontal(childParams.Size, float.PositiveInfinity);
@@ -419,13 +392,13 @@ namespace Facepunch.Flexbox
             Profiler.BeginSample(nameof(MeasureCrossAxis), this);
 
             var horizontal = IsHorizontal;
-            ref var prefSize = ref Pick(horizontal, ref _prefHeight, ref _prefWidth);
+            ref var prefSize = ref Pick(horizontal, ref PrefHeight, ref PrefWidth);
             var padding = horizontal
                 ? Padding.top + Padding.bottom
                 : Padding.left + Padding.right;
 
             var crossAxisPreferredSize = 0f;
-            foreach (var child in _children)
+            foreach (var child in Children)
             {
                 if (child.IsDirty)
                 {
@@ -476,7 +449,7 @@ namespace Facepunch.Flexbox
 
             //Debug.Log($"({name}) cross setup: w={maxWidth} h={maxHeight} inner={innerSize}", this);
 
-            foreach (var child in _children)
+            foreach (var child in Children)
             {
                 child.GetScale(out var childScaleX, out var childScaleY);
                 child.GetPreferredSize(out var childPreferredWidth, out var childPreferredHeight);
@@ -560,135 +533,7 @@ namespace Facepunch.Flexbox
                 ? (length.Value / 100f) * fillValue
                 : length.Value;
         }
-
-        private void SetupTransform()
-        {
-            if (!IsAbsolute)
-            {
-                var rt = (RectTransform)transform;
-                rt.localRotation = Quaternion.identity;
-                rt.pivot = new Vector2(0, 1); // top left
-                rt.anchorMin = new Vector2(0, 1); // top left
-                rt.anchorMax = new Vector2(0, 1); // top left
-            }
-        }
-
-        #region IFlexNode
-
-        RectTransform IFlexNode.Transform => (RectTransform)transform;
-        bool IFlexNode.IsActive => IsActive();
+        
         bool IFlexNode.IsAbsolute => IsAbsolute;
-        bool IFlexNode.IsDirty => _isDirty;
-        FlexLength IFlexNode.MinWidth => MinWidth;
-        FlexLength IFlexNode.MaxWidth => MaxWidth;
-        FlexLength IFlexNode.MinHeight => MinHeight;
-        FlexLength IFlexNode.MaxHeight => MaxHeight;
-        FlexLength IFlexNode.Basis => Basis;
-        int IFlexNode.Grow => Grow;
-        int IFlexNode.Shrink => Shrink;
-        FlexAlignSelf IFlexNode.AlignSelf => AlignSelf;
-
-        void IFlexNode.MeasureHorizontal()
-        {
-#if UNITY_EDITOR
-            _drivenTracker.Clear();
-#endif
-
-            _children.Clear();
-            foreach (var child in new FlexChildEnumerable(this, IsReversed))
-            {
-                _children.Add(child);
-
-#if UNITY_EDITOR
-                _drivenTracker.Add(this, child.Transform, ControlledProperties);
-#endif
-            }
-
-            if (IsHorizontal) MeasureMainAxis();
-            else MeasureCrossAxis();
-        }
-
-        void IFlexNode.LayoutHorizontal(float maxWidth, float maxHeight)
-        {
-            _isDoingLayout = true;
-
-            SetupTransform();
-
-            try
-            {
-                if (IsHorizontal) LayoutMainAxis(maxWidth, maxHeight);
-                else LayoutCrossAxis(maxWidth, maxHeight);
-            }
-            finally
-            {
-                _isDoingLayout = false;
-            }
-        }
-
-        void IFlexNode.MeasureVertical()
-        {
-            if (IsHorizontal) MeasureCrossAxis();
-            else MeasureMainAxis();
-        }
-
-        void IFlexNode.LayoutVertical(float maxWidth, float maxHeight)
-        {
-            _isDoingLayout = true;
-
-            try
-            {
-                if (IsHorizontal) LayoutCrossAxis(maxWidth, maxHeight);
-                else LayoutMainAxis(maxWidth, maxHeight);
-
-                _isDirty = false;
-            }
-            finally
-            {
-                _isDoingLayout = false;
-            }
-        }
-
-        void IFlexNode.GetScale(out float scaleX, out float scaleY)
-        {
-            var rectTransform = (RectTransform)transform;
-            var localScale = rectTransform.localScale;
-            scaleX = localScale.x;
-            scaleY = localScale.y;
-        }
-
-        void IFlexNode.GetPreferredSize(out float preferredWidth, out float preferredHeight)
-        {
-            preferredWidth = _prefWidth;
-            preferredHeight = _prefHeight;
-        }
-
-        #endregion
-
-        protected override void OnEnable()
-        {
-            SetupTransform();
-            SetLayoutDirty(true);
-        }
-
-        protected override void OnDisable()
-        {
-            SetLayoutDirty(true);
-
-#if UNITY_EDITOR
-            _drivenTracker.Clear();
-#endif
-        }
-
-        protected override void OnRectTransformDimensionsChange() => SetLayoutDirty();
-
-        protected override void OnBeforeTransformParentChanged() => SetLayoutDirty();
-
-        protected override void OnTransformParentChanged() => SetLayoutDirty();
-
-        protected virtual void OnTransformChildrenChanged() => SetLayoutDirty();
-
-#if UNITY_EDITOR
-        protected override void OnValidate() => SetLayoutDirty(true);
-#endif
     }
 }
