@@ -10,7 +10,7 @@ namespace Facepunch.Flexbox
     [ExecuteAlways]
     [RequireComponent(typeof(RectTransform))]
     [DisallowMultipleComponent]
-    public class FlexElement : FlexElementBase, IFlexNode
+    public class FlexElement : FlexElementBase
     {
         private static readonly List<IFlexNode> SizingChildren = new List<IFlexNode>();
 
@@ -28,12 +28,6 @@ namespace Facepunch.Flexbox
 
         [Min(0), Tooltip("Spacing to add between each child flex item.")]
         public float Gap = 0;
-
-        [Tooltip("Absolute elements act as the root container for any number of flex elements.")]
-        public bool IsAbsolute;
-
-        [Tooltip("Automatically resize an absolute element to match the size of its children.")]
-        public bool AutoSizeX, AutoSizeY;
         
         private ChildSizingParameters[] _childSizes = Array.Empty<ChildSizingParameters>();
         
@@ -48,53 +42,6 @@ namespace Facepunch.Flexbox
 
         private bool IsHorizontal => FlexDirection == FlexDirection.Row || FlexDirection == FlexDirection.RowReverse;
         protected override bool IsReversed => FlexDirection == FlexDirection.RowReverse || FlexDirection == FlexDirection.ColumnReverse;
-
-        internal void PerformLayout()
-        {
-            var rectTransform = (RectTransform)transform;
-
-            var rect = rectTransform.rect;
-            var width = rect.width;
-            var height = rect.height;
-
-            var nonAbsoluteRootOverride = !IsAbsolute && FlexUtility.IsPrefabRoot(gameObject);
-            var autoSizeX = AutoSizeX || nonAbsoluteRootOverride;
-            var autoSizeY = AutoSizeY || nonAbsoluteRootOverride;
-
-            var node = (IFlexNode)this;
-            node.MeasureHorizontal();
-            node.LayoutHorizontal(autoSizeX ? PrefWidth : width, autoSizeY ? PrefHeight : height);
-            node.MeasureVertical();
-            node.LayoutVertical(autoSizeX ? PrefWidth : width, autoSizeY ? PrefHeight : height);
-
-            IsDoingLayout = true;
-            try
-            {
-                if (autoSizeX)
-                {
-                    //Debug.Log($"w={_prefWidth}");
-                    rectTransform.SetSizeWithCurrentAnchors(RectTransform.Axis.Horizontal, PrefWidth);
-
-#if UNITY_EDITOR
-                    DrivenTracker.Add(this, rectTransform, DrivenTransformProperties.SizeDeltaX);
-#endif
-                }
-
-                if (autoSizeY)
-                {
-                    //Debug.Log($"h={_prefHeight}");
-                    rectTransform.SetSizeWithCurrentAnchors(RectTransform.Axis.Vertical, PrefHeight);
-
-#if UNITY_EDITOR
-                    DrivenTracker.Add(this, rectTransform, DrivenTransformProperties.SizeDeltaY);
-#endif
-                }
-            }
-            finally
-            {
-                IsDoingLayout = false;
-            }
-        }
 
         protected override void MeasureHorizontalImpl()
         {
@@ -248,7 +195,7 @@ namespace Facepunch.Flexbox
             var growthAllowance = Mathf.Max(innerSize - prefMainContentSize, 0);
             var shrinkAllowance = Mathf.Max(prefMainContentSize - innerSize, 0);
 
-            //Debug.Log($"({name}) main setup: w={maxWidth} h={maxHeight} inner={innerSize} pref={(horizontal ? _prefWidth : _prefHeight)} grow={growthAllowance} shrink={shrinkAllowance}", this);
+            //Debug.Log($"({name}) main setup: w={maxWidth} h={maxHeight} inner={innerSize} pref={(horizontal ? PrefWidth : PrefHeight)} grow={growthAllowance} shrink={shrinkAllowance}", this);
 
             while (SizingChildren.Exists(n => n != null))
             {
@@ -422,7 +369,15 @@ namespace Facepunch.Flexbox
             if (IsAbsolute)
             {
                 var rect = ((RectTransform)transform).rect;
-                prefSize = horizontal ? rect.height : rect.width;
+
+                if (horizontal && !AutoSizeY)
+                {
+                    prefSize = rect.height;
+                }
+                else if (!horizontal && !AutoSizeX)
+                {
+                    prefSize = rect.width;
+                }
             }
             else
             {
@@ -511,29 +466,5 @@ namespace Facepunch.Flexbox
                 }
             }
         }
-
-        private static ref T Pick<T>(bool value, ref T ifTrue, ref T ifFalse)
-        {
-            if (value)
-            {
-                return ref ifTrue;
-            }
-
-            return ref ifFalse;
-        }
-
-        private static float CalculateLengthValue(in FlexLength length, float fillValue, float defaultValue)
-        {
-            if (!length.HasValue)
-            {
-                return defaultValue;
-            }
-
-            return length.Unit == FlexUnit.Percent
-                ? (length.Value / 100f) * fillValue
-                : length.Value;
-        }
-        
-        bool IFlexNode.IsAbsolute => IsAbsolute;
     }
 }

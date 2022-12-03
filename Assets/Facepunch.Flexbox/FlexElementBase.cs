@@ -1,4 +1,5 @@
-﻿using System.Collections.Generic;
+﻿using Facepunch.Flexbox.Utility;
+using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.EventSystems;
 
@@ -24,6 +25,12 @@ namespace Facepunch.Flexbox
         [Tooltip("The maximum allowed dimensions of this flex element.")]
         public FlexLength MinHeight, MaxHeight;
 
+        [Tooltip("Absolute elements act as the root container for any number of flex elements.")]
+        public bool IsAbsolute;
+
+        [Tooltip("Automatically resize an absolute element to match the size of its children.")]
+        public bool AutoSizeX, AutoSizeY;
+
         protected bool IsDirty, IsDoingLayout;
         protected float PrefWidth, PrefHeight;
         protected readonly List<IFlexNode> Children = new List<IFlexNode>();
@@ -39,6 +46,53 @@ namespace Facepunch.Flexbox
         protected DrivenRectTransformTracker DrivenTracker = new DrivenRectTransformTracker();
 #endif
 
+        internal void PerformLayout()
+        {
+            var rectTransform = (RectTransform)transform;
+
+            var rect = rectTransform.rect;
+            var width = rect.width;
+            var height = rect.height;
+
+            var nonAbsoluteRootOverride = !IsAbsolute && FlexUtility.IsPrefabRoot(gameObject);
+            var autoSizeX = AutoSizeX || nonAbsoluteRootOverride;
+            var autoSizeY = AutoSizeY || nonAbsoluteRootOverride;
+
+            var node = (IFlexNode)this;
+            node.MeasureHorizontal();
+            node.LayoutHorizontal(autoSizeX ? PrefWidth : width, autoSizeY ? PrefHeight : height);
+            node.MeasureVertical();
+            node.LayoutVertical(autoSizeX ? PrefWidth : width, autoSizeY ? PrefHeight : height);
+
+            IsDoingLayout = true;
+            try
+            {
+                if (autoSizeX)
+                {
+                    //Debug.Log($"w={_prefWidth}");
+                    rectTransform.SetSizeWithCurrentAnchors(RectTransform.Axis.Horizontal, PrefWidth);
+
+#if UNITY_EDITOR
+                    DrivenTracker.Add(this, rectTransform, DrivenTransformProperties.SizeDeltaX);
+#endif
+                }
+
+                if (autoSizeY)
+                {
+                    //Debug.Log($"h={_prefHeight}");
+                    rectTransform.SetSizeWithCurrentAnchors(RectTransform.Axis.Vertical, PrefHeight);
+
+#if UNITY_EDITOR
+                    DrivenTracker.Add(this, rectTransform, DrivenTransformProperties.SizeDeltaY);
+#endif
+                }
+            }
+            finally
+            {
+                IsDoingLayout = false;
+            }
+        }
+
         public void SetLayoutDirty(bool force = false)
         {
             if (!force && (IsDoingLayout || !IsActive()))
@@ -48,14 +102,10 @@ namespace Facepunch.Flexbox
 
             IsDirty = true;
             
-            var thisNode = (IFlexNode)this;
             var parent = transform.parent;
-            if (thisNode.IsAbsolute || parent == null || !parent.TryGetComponent<IFlexNode>(out var parentNode))
+            if (IsAbsolute || parent == null || !parent.TryGetComponent<IFlexNode>(out var parentNode))
             {
-                if (this is FlexElement flexElem)
-                {
-                    FlexLayoutManager.EnqueueLayout(flexElem);
-                }
+                FlexLayoutManager.EnqueueLayout(this);
             }
             else
             {
@@ -65,8 +115,7 @@ namespace Facepunch.Flexbox
 
         private void SetupTransform()
         {
-            var thisNode = (IFlexNode)this;
-            if (!thisNode.IsAbsolute)
+            if (!IsAbsolute)
             {
                 var rt = (RectTransform)transform;
                 rt.localRotation = Quaternion.identity;
@@ -84,7 +133,7 @@ namespace Facepunch.Flexbox
         #region IFlexNode
         RectTransform IFlexNode.Transform => (RectTransform)transform;
         bool IFlexNode.IsActive => IsActive();
-        bool IFlexNode.IsAbsolute => false;
+        bool IFlexNode.IsAbsolute => IsAbsolute;
         bool IFlexNode.IsDirty => IsDirty;
         FlexLength IFlexNode.MinWidth => MinWidth;
         FlexLength IFlexNode.MaxWidth => MaxWidth;
@@ -191,5 +240,27 @@ namespace Facepunch.Flexbox
 #if UNITY_EDITOR
         protected override void OnValidate() => SetLayoutDirty(true);
 #endif
+
+        protected static ref T Pick<T>(bool value, ref T ifTrue, ref T ifFalse)
+        {
+            if (value)
+            {
+                return ref ifTrue;
+            }
+
+            return ref ifFalse;
+        }
+
+        protected static float CalculateLengthValue(in FlexLength length, float fillValue, float defaultValue)
+        {
+            if (!length.HasValue)
+            {
+                return defaultValue;
+            }
+
+            return length.Unit == FlexUnit.Percent
+                ? (length.Value / 100f) * fillValue
+                : length.Value;
+        }
     }
 }

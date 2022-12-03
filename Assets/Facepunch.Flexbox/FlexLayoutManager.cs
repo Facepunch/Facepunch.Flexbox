@@ -12,8 +12,8 @@ namespace Facepunch.Flexbox
     {
         public static FlexLayoutManager Instance { get; private set; }
 
-        private static readonly List<FlexElement> DirtyElements = new List<FlexElement>();
-        private static readonly List<FlexElement> UpdatingElements = new List<FlexElement>();
+        private static readonly List<FlexElementBase> DirtyElements = new List<FlexElementBase>();
+        private static readonly List<FlexElementBase> UpdatingElements = new List<FlexElementBase>();
 
 #if UNITY_EDITOR
         private static bool EditorHookedUpdate = false;
@@ -43,7 +43,7 @@ namespace Facepunch.Flexbox
             FlushQueue();
         }
 
-        public static void EnqueueLayout(FlexElement element)
+        public static void EnqueueLayout(FlexElementBase element)
         {
             if (element == null)
             {

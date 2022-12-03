@@ -62,7 +62,7 @@ namespace Facepunch.Flexbox
                 if (!FlexUtility.IsPrefabRoot(elem.gameObject))
                 {
                     var parentObj = elem.transform.parent;
-                    if (parentObj == null || !parentObj.TryGetComponent<FlexElement>(out _))
+                    if (parentObj == null || !parentObj.TryGetComponent<FlexElementBase>(out _))
                     {
                         EditorGUILayout.HelpBox("This element has no parent FlexElement. It should probably be marked as absolute.", MessageType.Warning);
                     }
