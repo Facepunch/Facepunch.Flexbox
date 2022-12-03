@@ -73,6 +73,8 @@ namespace Facepunch.Flexbox
 
         protected override void LayoutHorizontalImpl(float maxWidth, float maxHeight)
         {
+            Profiler.BeginSample(nameof(LayoutHorizontalImpl), this);
+
             var innerWidth = maxWidth - Padding.left - Padding.right;
 
             float columnWidth;
@@ -109,6 +111,8 @@ namespace Facepunch.Flexbox
                 columnIdx++;
                 if (columnIdx >= _calculatedColumnCount) columnIdx = 0;
             }
+
+            Profiler.EndSample();
         }
 
         protected override void MeasureVerticalImpl()
@@ -167,6 +171,8 @@ namespace Facepunch.Flexbox
 
         protected override void LayoutVerticalImpl(float maxWidth, float maxHeight)
         {
+            Profiler.BeginSample(nameof(LayoutVerticalImpl), this);
+
             var innerHeight = maxHeight - Padding.top - Padding.bottom;
             
             EnsureColumnParamsSize();
@@ -196,6 +202,8 @@ namespace Facepunch.Flexbox
                 columnIdx++;
                 if (columnIdx >= _calculatedColumnCount) columnIdx = 0;
             }
+
+            Profiler.EndSample();
         }
 
         private void EnsureColumnParamsSize()
