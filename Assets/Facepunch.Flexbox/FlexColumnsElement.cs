@@ -123,7 +123,7 @@ namespace Facepunch.Flexbox
 
             for (var i = 0; i < _calculatedColumnCount; i++)
             {
-                _columnParams[i] = default;
+                _columnParams[i].Height = 0;
             }
 
             var columnIdx = 0;
@@ -176,6 +176,11 @@ namespace Facepunch.Flexbox
             var innerHeight = maxHeight - Padding.top - Padding.bottom;
             
             EnsureColumnParamsSize();
+
+            for (var i = 0; i < _calculatedColumnCount; i++)
+            {
+                _columnParams[i].Offset = 0;
+            }
 
             var columnIdx = 0;
             foreach (var child in Children)
