@@ -13,6 +13,7 @@ namespace Facepunch.Flexbox
         private SerializedProperty _autoSizeX, _autoSizeY;
         private SerializedProperty _minWidth, _maxWidth;
         private SerializedProperty _minHeight, _maxHeight;
+        private SerializedProperty _overridePreferredWidth, _overridePreferredHeight;
 
         public virtual void OnEnable()
         {
@@ -27,6 +28,8 @@ namespace Facepunch.Flexbox
             _maxWidth = serializedObject.FindProperty("MaxWidth");
             _minHeight = serializedObject.FindProperty("MinHeight");
             _maxHeight = serializedObject.FindProperty("MaxHeight");
+            _overridePreferredWidth = serializedObject.FindProperty("OverridePreferredWidth");
+            _overridePreferredHeight = serializedObject.FindProperty("OverridePreferredHeight");
         }
 
         protected abstract void LayoutSection();
@@ -76,6 +79,8 @@ namespace Facepunch.Flexbox
                     EditorGUILayout.PropertyField(_maxWidth);
                     EditorGUILayout.PropertyField(_minHeight);
                     EditorGUILayout.PropertyField(_maxHeight);
+                    EditorGUILayout.PropertyField(_overridePreferredWidth);
+                    EditorGUILayout.PropertyField(_overridePreferredHeight);
                 }
             }
 

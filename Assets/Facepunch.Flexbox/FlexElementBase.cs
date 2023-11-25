@@ -25,6 +25,9 @@ namespace Facepunch.Flexbox
         [Tooltip("The maximum allowed dimensions of this flex element.")]
         public FlexLength MinHeight, MaxHeight;
 
+        [Tooltip("Overrides for the preferred dimensions of this flex element. Useful for things like images which would normally have a preferred size of zero.")]
+        public FlexValue OverridePreferredWidth, OverridePreferredHeight;
+
         [Tooltip("Absolute elements act as the root container for any number of flex elements.")]
         public bool IsAbsolute;
 
@@ -210,8 +213,8 @@ namespace Facepunch.Flexbox
 
         void IFlexNode.GetPreferredSize(out float preferredWidth, out float preferredHeight)
         {
-            preferredWidth = PrefWidth;
-            preferredHeight = PrefHeight;
+            preferredWidth = OverridePreferredWidth.GetOrDefault(PrefWidth);
+            preferredHeight = OverridePreferredHeight.GetOrDefault(PrefHeight);
         }
         #endregion
 
