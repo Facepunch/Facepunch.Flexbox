@@ -55,8 +55,8 @@ namespace Facepunch.Flexbox
             var height = rect.height;
 
             var nonAbsoluteRootOverride = !IsAbsolute && FlexUtility.IsPrefabRoot(gameObject);
-            var autoSizeX = AutoSizeX || nonAbsoluteRootOverride;
-            var autoSizeY = AutoSizeY || nonAbsoluteRootOverride;
+            var autoSizeX = (IsAbsolute && AutoSizeX) || nonAbsoluteRootOverride;
+            var autoSizeY = (IsAbsolute && AutoSizeY) || nonAbsoluteRootOverride;
 
             var node = (IFlexNode)this;
             node.MeasureHorizontal();
@@ -69,22 +69,22 @@ namespace Facepunch.Flexbox
             {
                 if (autoSizeX)
                 {
-                    //Debug.Log($"w={_prefWidth}");
-                    rectTransform.SetSizeWithCurrentAnchors(RectTransform.Axis.Horizontal, PrefWidth);
-
 #if UNITY_EDITOR
                     DrivenTracker.Add(this, rectTransform, DrivenTransformProperties.SizeDeltaX);
 #endif
+
+                    //Debug.Log($"w={_prefWidth}");
+                    rectTransform.SetSizeWithCurrentAnchors(RectTransform.Axis.Horizontal, PrefWidth);
                 }
 
                 if (autoSizeY)
                 {
-                    //Debug.Log($"h={_prefHeight}");
-                    rectTransform.SetSizeWithCurrentAnchors(RectTransform.Axis.Vertical, PrefHeight);
-
 #if UNITY_EDITOR
                     DrivenTracker.Add(this, rectTransform, DrivenTransformProperties.SizeDeltaY);
 #endif
+
+                    //Debug.Log($"h={_prefHeight}");
+                    rectTransform.SetSizeWithCurrentAnchors(RectTransform.Axis.Vertical, PrefHeight);
                 }
             }
             finally
@@ -112,18 +112,6 @@ namespace Facepunch.Flexbox
                 parentNode.SetLayoutDirty(force);
             }
         }
-
-        private void SetupTransform()
-        {
-            if (!IsAbsolute)
-            {
-                var rt = (RectTransform)transform;
-                rt.localRotation = Quaternion.identity;
-                rt.pivot = new Vector2(0, 1); // top left
-                rt.anchorMin = new Vector2(0, 1); // top left
-                rt.anchorMax = new Vector2(0, 1); // top left
-            }
-        }
         
         protected abstract void MeasureHorizontalImpl();
         protected abstract void LayoutHorizontalImpl(float maxWidth, float maxHeight);
@@ -144,6 +132,19 @@ namespace Facepunch.Flexbox
         int IFlexNode.Shrink => Shrink;
         FlexAlignSelf IFlexNode.AlignSelf => AlignSelf;
 
+        void IFlexNode.SetupTransform()
+        {
+            if (!IsAbsolute)
+            {
+                var rectTransform = (RectTransform)transform;
+                
+                rectTransform.localRotation = Quaternion.identity;
+                rectTransform.pivot = new Vector2(0, 1); // top left
+                rectTransform.anchorMin = new Vector2(0, 1); // top left
+                rectTransform.anchorMax = new Vector2(0, 1); // top left
+            }
+        }
+
         void IFlexNode.MeasureHorizontal()
         {
 #if UNITY_EDITOR
@@ -158,6 +159,8 @@ namespace Facepunch.Flexbox
 #if UNITY_EDITOR
                 DrivenTracker.Add(this, child.Transform, ControlledProperties);
 #endif
+
+                child.SetupTransform();
             }
 
             MeasureHorizontalImpl();
@@ -166,9 +169,7 @@ namespace Facepunch.Flexbox
         void IFlexNode.LayoutHorizontal(float maxWidth, float maxHeight)
         {
             IsDoingLayout = true;
-
-            SetupTransform();
-
+            
             try
             {
                 LayoutHorizontalImpl(maxWidth, maxHeight);
@@ -216,7 +217,6 @@ namespace Facepunch.Flexbox
 
         protected override void OnEnable()
         {
-            SetupTransform();
             SetLayoutDirty(true);
         }
 

@@ -87,7 +87,7 @@ namespace Facepunch.Flexbox
             }
             else
             {
-                _calculatedColumnCount = Mathf.Max(Mathf.FloorToInt(innerWidth / (ColumnWidth + Gap)), 1);
+                _calculatedColumnCount = Mathf.Max(Mathf.FloorToInt((innerWidth + Gap) / (ColumnWidth + Gap)), 1);
                 columnWidth = ColumnWidth;
             }
 

@@ -37,7 +37,6 @@ namespace Facepunch.Flexbox
         {
             base.OnEnable();
 
-            SetupTransform();
             SetLayoutDirty();
         }
 
@@ -65,16 +64,6 @@ namespace Facepunch.Flexbox
             }
         }
 
-        private void SetupTransform()
-        {
-            var rt = (RectTransform)transform;
-            rt.localScale = Vector3.one;
-            rt.localRotation = Quaternion.identity;
-            rt.pivot = new Vector2(0, 1); // top left
-            rt.anchorMin = new Vector2(0, 1); // top left
-            rt.anchorMax = new Vector2(0, 1); // top left
-        }
-
         #region IFlexNode
 
         RectTransform IFlexNode.Transform => (RectTransform)transform;
@@ -89,6 +78,16 @@ namespace Facepunch.Flexbox
         int IFlexNode.Grow => Grow;
         int IFlexNode.Shrink => Shrink;
         FlexAlignSelf IFlexNode.AlignSelf => AlignSelf;
+
+        void IFlexNode.SetupTransform()
+        {
+            var rectTransform = (RectTransform)transform;
+            
+            rectTransform.localRotation = Quaternion.identity;
+            rectTransform.pivot = new Vector2(0, 1); // top left
+            rectTransform.anchorMin = new Vector2(0, 1); // top left
+            rectTransform.anchorMax = new Vector2(0, 1); // top left
+        }
 
         void IFlexNode.SetLayoutDirty(bool force)
         {
@@ -117,7 +116,6 @@ namespace Facepunch.Flexbox
 
         void IFlexNode.LayoutHorizontal(float maxWidth, float maxHeight)
         {
-            SetupTransform();
         }
 
         void IFlexNode.MeasureVertical()

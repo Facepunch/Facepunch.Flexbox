@@ -366,18 +366,15 @@ namespace Facepunch.Flexbox
                 }
             }
 
-            if (IsAbsolute)
+            if (IsAbsolute && !AutoSizeY && horizontal)
             {
                 var rect = ((RectTransform)transform).rect;
-
-                if (horizontal && !AutoSizeY)
-                {
-                    prefSize = rect.height;
-                }
-                else if (!horizontal && !AutoSizeX)
-                {
-                    prefSize = rect.width;
-                }
+                prefSize = rect.height;
+            }
+            else if (IsAbsolute && !AutoSizeX && !horizontal)
+            {
+                var rect = ((RectTransform)transform).rect;
+                prefSize = rect.width;
             }
             else
             {

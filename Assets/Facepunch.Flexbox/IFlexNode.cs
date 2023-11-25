@@ -18,6 +18,7 @@ namespace Facepunch.Flexbox
         FlexLength Basis { get; }
         FlexAlignSelf AlignSelf { get; }
 
+        void SetupTransform();
         void SetLayoutDirty(bool force = false);
 
         void MeasureHorizontal();

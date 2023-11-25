@@ -1,9 +1,5 @@
 ﻿using UnityEngine;
 
-#if UNITY_EDITOR
-using UnityEditor.Experimental.SceneManagement;
-#endif
-
 namespace Facepunch.Flexbox.Utility
 {
     public static class FlexUtility
@@ -17,7 +13,7 @@ namespace Facepunch.Flexbox.Utility
             }
 
             var thisGo = gameObject;
-            var stage = PrefabStageUtility.GetPrefabStage(thisGo);
+            var stage = UnityEditor.SceneManagement.PrefabStageUtility.GetPrefabStage(thisGo);
             return stage != null && ReferenceEquals(stage.prefabContentsRoot, thisGo);
 #else
             return false;
