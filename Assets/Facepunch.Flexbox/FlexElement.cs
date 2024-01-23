@@ -222,7 +222,7 @@ namespace Facepunch.Flexbox
                         {
                             var growPotential = ((float)child.Grow / growSum) * growthAllowance;
                             var growAmount = Mathf.Clamp(maxValue - value, 0, growPotential);
-                            value += growAmount / scale;
+                            value += scale > 0 ? growAmount / scale : 0;
                             growthAllowance -= growAmount;
                             growSum -= child.Grow;
                             return growAmount <= float.Epsilon;
@@ -236,7 +236,7 @@ namespace Facepunch.Flexbox
                         {
                             var shrinkPotential = ((float)child.Shrink / shrinkSum) * shrinkAllowance;
                             var shrinkAmount = Mathf.Clamp(value - minValue, 0, shrinkPotential);
-                            value -= shrinkAmount / scale;
+                            value -= scale > 0 ? shrinkAmount / scale : 0;
                             shrinkAllowance -= shrinkAmount;
                             shrinkSum -= child.Shrink;
                             return shrinkAmount <= float.Epsilon;
@@ -407,7 +407,7 @@ namespace Facepunch.Flexbox
                 child.GetPreferredSize(out var childPreferredWidth, out var childPreferredHeight);
 
                 var childScaleCross = horizontal ? childScaleY : childScaleX;
-                var scaledInnerSize = innerSize / childScaleCross;
+                var scaledInnerSize = childScaleCross > 0 ? innerSize / childScaleCross : 0;
 
                 var childAlign = child.AlignSelf.GetValueOrDefault(AlignItems);
                 var childMinCross = CalculateLengthValue(horizontal ? child.MinHeight : child.MinWidth, scaledInnerSize, 0);
