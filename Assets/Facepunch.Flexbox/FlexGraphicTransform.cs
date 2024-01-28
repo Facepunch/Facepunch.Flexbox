@@ -21,7 +21,6 @@ namespace Facepunch.Flexbox
         public float Rotate = 0;
 
         private static readonly Dictionary<TextMeshProUGUI, FlexGraphicTransform> TextMeshProTransformers = new();
-        private static readonly List<FlexGraphicTransform> Children = new();
         private static readonly List<TMP_SubMeshUI> SubMeshUIs = new();
         private static readonly List<Mesh> Meshes = new();
         private static readonly VertexHelper VertexHelper = new();
