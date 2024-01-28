@@ -7,8 +7,6 @@ using UnityEngine.UI;
 namespace Facepunch.Flexbox
 {
     [RequireComponent(typeof(RectTransform))]
-    [RequireComponent(typeof(CanvasRenderer))]
-    [RequireComponent(typeof(Graphic))]
     [DisallowMultipleComponent]
     [ExecuteAlways]
     public class FlexGraphicTransform : UIBehaviour, IMeshModifier
