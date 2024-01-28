@@ -27,6 +27,12 @@ namespace Facepunch.Flexbox
             TextColor,
             CanvasAlpha,
             RotationZ,
+
+            TransformTranslateX = 200,
+            TransformTranslateY,
+            TransformScaleX,
+            TransformScaleY,
+            TransformRotate,
         }
 
         [Serializable]
@@ -107,8 +113,7 @@ namespace Facepunch.Flexbox
                             .setEase(transition.Ease)
                             .setOnUpdate((float value, object obj) =>
                             {
-                                var elem = (FlexElement)obj;
-                                if (elem != null)
+                                if (obj is FlexElement elem)
                                 {
                                     elem.SetLayoutDirty();
                                 }
@@ -121,8 +126,9 @@ namespace Facepunch.Flexbox
                         element.transform.localScale = scale;
                         element.SetLayoutDirty();
                     }
-                }
+
                     break;
+                }
 
                 case TransitionProperty.ScaleY:
                 {
@@ -153,8 +159,9 @@ namespace Facepunch.Flexbox
                         element.transform.localScale = scale;
                         element.SetLayoutDirty();
                     }
-                }
+
                     break;
+                }
 
                 case TransitionProperty.ImageColor:
                 {
@@ -168,13 +175,14 @@ namespace Facepunch.Flexbox
                     var targetValue = _currentState ? transition.ToColor : transition.FromColor;
                     if (animate)
                     {
-                        tween = LeanTween.value(image.gameObject, 0, 1, transition.Duration)
+                        tween = LeanTween.value(image.gameObject, startValue, targetValue, transition.Duration)
                             .setEase(transition.Ease)
-                            .setOnUpdate((float value) =>
+                            .setOnUpdateParam(image)
+                            .setOnUpdateColor((Color value, object obj) =>
                             {
-                                if (image != null)
+                                if (obj is Image img)
                                 {
-                                    image.color = Color.Lerp(startValue, targetValue, value);
+                                    img.color = value;
                                 }
                             });
                     }
@@ -182,8 +190,9 @@ namespace Facepunch.Flexbox
                     {
                         image.color = targetValue;
                     }
-                }
+                
                     break;
+                }
 
                 case TransitionProperty.TextColor:
                 {
@@ -197,13 +206,14 @@ namespace Facepunch.Flexbox
                     var targetValue = _currentState ? transition.ToColor : transition.FromColor;
                     if (animate)
                     {
-                        tween = LeanTween.value(text.gameObject, 0, 1, transition.Duration)
+                        tween = LeanTween.value(text.gameObject, startValue, targetValue, transition.Duration)
                             .setEase(transition.Ease)
-                            .setOnUpdate((float value) =>
+                            .setOnUpdateParam(text)
+                            .setOnUpdateColor((Color value, object state) =>
                             {
-                                if (text != null)
+                                if (state is TMP_Text txt)
                                 {
-                                    text.color = Color.Lerp(startValue, targetValue, value);
+                                    txt.color = value;
                                 }
                             });
                     }
@@ -211,8 +221,9 @@ namespace Facepunch.Flexbox
                     {
                         text.color = targetValue;
                     }
-                }
+                
                     break;
+                }
 
                 case TransitionProperty.CanvasAlpha:
                 {
@@ -231,8 +242,9 @@ namespace Facepunch.Flexbox
                     {
                         canvas.alpha = targetValue;
                     }
-                }
+
                     break;
+                }
 
                 case TransitionProperty.RotationZ:
                 {
@@ -254,8 +266,174 @@ namespace Facepunch.Flexbox
                         angles.z = targetValue;
                         transform.localEulerAngles = angles;
                     }
-                }
+
                     break;
+                }
+
+                case TransitionProperty.TransformTranslateX:
+                {
+                    var graphicTransform = transition.Object as FlexGraphicTransform;
+                    if (graphicTransform == null)
+                    {
+                        break;
+                    }
+
+                    var startValue = graphicTransform.TranslateX;
+                    var targetValue = _currentState ? transition.ToFloat : transition.FromFloat;
+                    if (animate)
+                    {
+                        tween = LeanTween.value(graphicTransform.gameObject, startValue, targetValue, transition.Duration)
+                            .setEase(transition.Ease)
+                            .setOnUpdateParam(graphicTransform)
+                            .setOnUpdateObject((float value, object state) =>
+                            {
+                                if (state is FlexGraphicTransform gt)
+                                {
+                                    gt.TranslateX = value;
+                                    gt.SetVerticesDirty();
+                                }
+                            });
+                    }
+                    else
+                    {
+                        graphicTransform.TranslateX = targetValue;
+                        graphicTransform.SetVerticesDirty();
+                    }
+
+                    break;
+                }
+
+                case TransitionProperty.TransformTranslateY:
+                {
+                    var graphicTransform = transition.Object as FlexGraphicTransform;
+                    if (graphicTransform == null)
+                    {
+                        break;
+                    }
+
+                    var startValue = graphicTransform.TranslateY;
+                    var targetValue = _currentState ? transition.ToFloat : transition.FromFloat;
+                    if (animate)
+                    {
+                        tween = LeanTween.value(graphicTransform.gameObject, startValue, targetValue, transition.Duration)
+                            .setEase(transition.Ease)
+                            .setOnUpdateParam(graphicTransform)
+                            .setOnUpdateObject((float value, object state) =>
+                            {
+                                if (state is FlexGraphicTransform gt)
+                                {
+                                    gt.TranslateY = value;
+                                    gt.SetVerticesDirty();
+                                }
+                            });
+                    }
+                    else
+                    {
+                        graphicTransform.TranslateY = targetValue;
+                        graphicTransform.SetVerticesDirty();
+                    }
+
+                    break;
+                }
+
+                case TransitionProperty.TransformScaleX:
+                {
+                    var graphicTransform = transition.Object as FlexGraphicTransform;
+                    if (graphicTransform == null)
+                    {
+                        break;
+                    }
+
+                    var startValue = graphicTransform.ScaleX;
+                    var targetValue = _currentState ? transition.ToFloat : transition.FromFloat;
+                    if (animate)
+                    {
+                        tween = LeanTween.value(graphicTransform.gameObject, startValue, targetValue, transition.Duration)
+                            .setEase(transition.Ease)
+                            .setOnUpdateParam(graphicTransform)
+                            .setOnUpdateObject((float value, object state) =>
+                            {
+                                if (state is FlexGraphicTransform gt)
+                                {
+                                    gt.ScaleX = value;
+                                    gt.SetVerticesDirty();
+                                }
+                            });
+                    }
+                    else
+                    {
+                        graphicTransform.ScaleX = targetValue;
+                        graphicTransform.SetVerticesDirty();
+                    }
+
+                    break;
+                }
+
+                case TransitionProperty.TransformScaleY:
+                {
+                    var graphicTransform = transition.Object as FlexGraphicTransform;
+                    if (graphicTransform == null)
+                    {
+                        break;
+                    }
+
+                    var startValue = graphicTransform.ScaleY;
+                    var targetValue = _currentState ? transition.ToFloat : transition.FromFloat;
+                    if (animate)
+                    {
+                        tween = LeanTween.value(graphicTransform.gameObject, startValue, targetValue, transition.Duration)
+                            .setEase(transition.Ease)
+                            .setOnUpdateParam(graphicTransform)
+                            .setOnUpdateObject((float value, object state) =>
+                            {
+                                if (state is FlexGraphicTransform gt)
+                                {
+                                    gt.ScaleY = value;
+                                    gt.SetVerticesDirty();
+                                }
+                            });
+                    }
+                    else
+                    {
+                        graphicTransform.ScaleY = targetValue;
+                        graphicTransform.SetVerticesDirty();
+                    }
+
+                    break;
+                }
+
+                case TransitionProperty.TransformRotate:
+                {
+                    var graphicTransform = transition.Object as FlexGraphicTransform;
+                    if (graphicTransform == null)
+                    {
+                        break;
+                    }
+
+                    var startValue = graphicTransform.Rotate;
+                    var targetValue = _currentState ? transition.ToFloat : transition.FromFloat;
+                    if (animate)
+                    {
+                        tween = LeanTween.value(graphicTransform.gameObject, startValue, targetValue, transition.Duration)
+                            .setEase(transition.Ease)
+                            .setOnUpdateParam(graphicTransform)
+                            .setOnUpdateObject((float value, object state) =>
+                            {
+                                if (state is FlexGraphicTransform gt)
+                                {
+                                    gt.Rotate = value;
+                                    gt.SetVerticesDirty();
+                                }
+                            });
+                    }
+                    else
+                    {
+                        graphicTransform.Rotate = targetValue;
+                        graphicTransform.SetVerticesDirty();
+                    }
+
+                    break;
+                }
 
                 default:
                 {
@@ -286,8 +464,9 @@ namespace Facepunch.Flexbox
                         Property(element, property) = targetValue;
                         element.SetLayoutDirty();
                     }
-                }
+
                     break;
+                }
             }
 
             return tween;

@@ -79,6 +79,15 @@ namespace Facepunch.Flexbox
                 label = new GUIContent("Transform");
                 type = typeof(Transform);
             }
+            else if (propertyType == FlexTransition.TransitionProperty.TransformTranslateX ||
+                     propertyType == FlexTransition.TransitionProperty.TransformTranslateY ||
+                     propertyType == FlexTransition.TransitionProperty.TransformScaleX ||
+                     propertyType == FlexTransition.TransitionProperty.TransformScaleY ||
+                     propertyType == FlexTransition.TransitionProperty.TransformRotate)
+            {
+                label = new GUIContent("Graphic Transform");
+                type = typeof(FlexGraphicTransform);
+            }
             else
             {
                 label = new GUIContent("Element");
