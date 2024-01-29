@@ -180,16 +180,16 @@ namespace Facepunch.Flexbox
                     new Vector3(TranslateX, TranslateY, 0),
                     Quaternion.Euler(0, 0, Rotate),
                     new Vector3(ScaleX, ScaleY, 1));
-                return (pivotMatrix * transformMatrix) * pivotMatrix.inverse;
+                var localMatrix = (pivotMatrix * transformMatrix) * pivotMatrix.inverse;
+                return _parent != null
+                    ? _parent.transformationMatrix * localMatrix
+                    : localMatrix;
             }
         }
 
         public void ModifyMesh(VertexHelper vh)
         {
-            var matrix = _parent != null
-                ? _parent.transformationMatrix * transformationMatrix
-                : transformationMatrix;
-
+            var matrix = transformationMatrix;
             var vt = default(UIVertex);
             var count = vh.currentVertCount;
             for (var i = 0; i < count; i++)
