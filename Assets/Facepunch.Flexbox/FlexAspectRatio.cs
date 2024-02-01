@@ -1,4 +1,4 @@
-﻿using UnityEngine;
+using UnityEngine;
 using UnityEngine.Profiling;
 
 namespace Facepunch.Flexbox
@@ -6,7 +6,7 @@ namespace Facepunch.Flexbox
     [ExecuteAlways]
     [RequireComponent(typeof(RectTransform))]
     [DisallowMultipleComponent]
-    public class FlexText : TMPro.TextMeshProUGUI, IFlexNode
+    public class FlexAspectRatio : MonoBehaviour, IFlexNode
     {
         [Tooltip("Controls the initial size of the element before factoring in grow/shrink.")]
         public FlexLength Basis;
@@ -26,24 +26,22 @@ namespace Facepunch.Flexbox
         [Tooltip("The maximum allowed dimensions of this flex element.")]
         public FlexLength MinHeight, MaxHeight;
 
-        private bool _isDirty;
+        [Tooltip("The aspect ratio to constrain to - X:Y.")]
+        public Vector2 AspectRatio = new Vector2(16, 9);
+
         private float _preferredWidth, _preferredHeight;
 
 #if UNITY_EDITOR
         private DrivenRectTransformTracker _drivenTracker = new DrivenRectTransformTracker();
 #endif
 
-        protected override void OnEnable()
+        protected void OnEnable()
         {
-            base.OnEnable();
-
             SetLayoutDirty();
         }
 
-        protected override void OnDisable()
+        protected void OnDisable()
         {
-            base.OnDisable();
-
             SetLayoutDirty();
 
 #if UNITY_EDITOR
@@ -51,12 +49,8 @@ namespace Facepunch.Flexbox
 #endif
         }
 
-        public override void SetLayoutDirty()
+        public void SetLayoutDirty()
         {
-            _isDirty = true;
-
-            base.SetLayoutDirty();
-
             var parent = transform.parent;
             if (parent != null && parent.TryGetComponent<IFlexNode>(out var parentNode) && parentNode.IsActive)
             {
@@ -64,12 +58,19 @@ namespace Facepunch.Flexbox
             }
         }
 
+#if UNITY_EDITOR
+        protected void OnValidate()
+        {
+            SetLayoutDirty();
+        }
+#endif
+
         #region IFlexNode
 
         RectTransform IFlexNode.Transform => (RectTransform)transform;
         bool IFlexNode.IsActive => isActiveAndEnabled;
         bool IFlexNode.IsAbsolute => false;
-        bool IFlexNode.IsDirty => _isDirty;
+        bool IFlexNode.IsDirty => true;
         FlexLength IFlexNode.MinWidth => MinWidth;
         FlexLength IFlexNode.MaxWidth => MaxWidth;
         FlexLength IFlexNode.MinHeight => MinHeight;
@@ -95,7 +96,7 @@ namespace Facepunch.Flexbox
 
         void IFlexNode.SetLayoutDirty(bool force)
         {
-            if (!force && !IsActive())
+            if (!force && !isActiveAndEnabled)
             {
                 return;
             }
@@ -107,13 +108,8 @@ namespace Facepunch.Flexbox
         {
             Profiler.BeginSample(nameof(IFlexNode.MeasureHorizontal), this);
 
-            // todo: use max width/height if we have any
-
-            var preferredSize = GetPreferredValues();
-            _preferredWidth = preferredSize.x;
-            _preferredHeight = preferredSize.y;
-
-            //Debug.Log($"text horizontal prefW={_preferredWidth} prefH={_preferredHeight}");
+            _preferredWidth = MinWidth.HasValue && MinWidth.Unit == FlexUnit.Pixels ? MinWidth.Value : 1;
+            _preferredHeight = MinHeight.HasValue && MinHeight.Unit == FlexUnit.Pixels ? MinHeight.Value : 1;
 
             Profiler.EndSample();
         }
@@ -126,21 +122,19 @@ namespace Facepunch.Flexbox
         {
             Profiler.BeginSample(nameof(IFlexNode.MeasureVertical), this);
 
+            var aspect = AspectRatio.x > 0 && AspectRatio.y > 1
+                ? AspectRatio.x / AspectRatio.y
+                : 1;
             var rt = (RectTransform)transform;
             var size = rt.sizeDelta;
 
-            var preferredSize = GetPreferredValues(size.x, float.PositiveInfinity);
-            _preferredWidth = preferredSize.x;
-            _preferredHeight = preferredSize.y;
-
-            //Debug.Log($"text vertical w={size.x} prefW={_preferredWidth} prefH={_preferredHeight}");
+            _preferredHeight = size.x / aspect;
 
             Profiler.EndSample();
         }
 
         void IFlexNode.LayoutVertical(float maxWidth, float maxHeight)
         {
-            _isDirty = false;
         }
 
         void IFlexNode.GetScale(out float scaleX, out float scaleY)
