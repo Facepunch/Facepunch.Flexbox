@@ -1,6 +1,7 @@
 ﻿using System;
 using UnityEngine;
 using UnityEngine.Profiling;
+using UnityEngine.Serialization;
 
 namespace Facepunch.Flexbox
 {
@@ -21,8 +22,9 @@ namespace Facepunch.Flexbox
         [Min(1), Tooltip("The number of columns to use when using a fixed number of columns.")]
         public int ColumnCount = 1;
 
-        [Min(1), Tooltip("The width of each column when not using a fixed number of columns.")]
-        public int ColumnWidth = 100;
+        [Min(1), Tooltip("The minimum width of each column when not using a fixed number of columns.")]
+        [FormerlySerializedAs("ColumnWidth")]
+        public int ColumnMinWidth = 100;
 
         private int _calculatedColumnCount;
         
@@ -77,19 +79,12 @@ namespace Facepunch.Flexbox
 
             var innerWidth = maxWidth - Padding.left - Padding.right;
 
-            float columnWidth;
-            if (FixedColumnCount)
-            {
-                _calculatedColumnCount = ColumnCount;
-                
-                var gapCount = Mathf.Max(_calculatedColumnCount - 1, 0);
-                columnWidth = (innerWidth - (Gap * gapCount)) / _calculatedColumnCount;
-            }
-            else
-            {
-                _calculatedColumnCount = Mathf.Max(Mathf.FloorToInt((innerWidth + Gap) / (ColumnWidth + Gap)), 1);
-                columnWidth = ColumnWidth;
-            }
+            _calculatedColumnCount = FixedColumnCount
+                ? ColumnCount
+                : Mathf.Max(Mathf.FloorToInt((innerWidth + Gap) / (ColumnMinWidth + Gap)), 1);
+
+            var gapCount = Mathf.Max(_calculatedColumnCount - 1, 0);
+            var columnWidth = (innerWidth - (Gap * gapCount)) / _calculatedColumnCount;
 
             var columnIdx = 0;
             foreach (var child in Children)

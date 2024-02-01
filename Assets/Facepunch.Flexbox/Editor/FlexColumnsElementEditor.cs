@@ -8,7 +8,7 @@ namespace Facepunch.Flexbox
     {
         private SerializedProperty _fixedColumnCount;
         private SerializedProperty _columnCount;
-        private SerializedProperty _columnWidth;
+        private SerializedProperty _columnMinWidth;
         private SerializedProperty _padding;
         private SerializedProperty _gap;
 
@@ -18,7 +18,7 @@ namespace Facepunch.Flexbox
 
             _fixedColumnCount = serializedObject.FindProperty("FixedColumnCount");
             _columnCount = serializedObject.FindProperty("ColumnCount");
-            _columnWidth = serializedObject.FindProperty("ColumnWidth");
+            _columnMinWidth = serializedObject.FindProperty("ColumnMinWidth");
             _padding = serializedObject.FindProperty("Padding");
             _gap = serializedObject.FindProperty("Gap");
         }
@@ -34,7 +34,7 @@ namespace Facepunch.Flexbox
                 }
                 else
                 {
-                    EditorGUILayout.PropertyField(_columnWidth);
+                    EditorGUILayout.PropertyField(_columnMinWidth);
                 }
             }
 
