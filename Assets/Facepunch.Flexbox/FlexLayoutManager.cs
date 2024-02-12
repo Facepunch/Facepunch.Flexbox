@@ -12,6 +12,8 @@ namespace Facepunch.Flexbox
     {
         public static FlexLayoutManager Instance { get; private set; }
 
+        internal static readonly HashSet<FlexElementBase> ActiveScopedUpdates = new HashSet<FlexElementBase>();
+
         private static readonly List<FlexElementBase> DirtyElements = new List<FlexElementBase>();
         private static readonly List<FlexElementBase> UpdatingElements = new List<FlexElementBase>();
 
@@ -84,10 +86,21 @@ namespace Facepunch.Flexbox
             DirtyElements.RemoveAll(e => e == null);
 #endif
 
-            if (!DirtyElements.Contains(element))
+            if (!DirtyElements.Contains(element) && !ActiveScopedUpdates.Contains(element))
             {
                 DirtyElements.Add(element);
             }
+        }
+
+        internal static void LayoutImmediate(FlexElementBase element)
+        {
+            if (element == null || !element.IsAbsolute)
+            {
+                return;
+            }
+
+            DirtyElements.Remove(element);
+            element.PerformLayout();
         }
 
         private static void FlushQueue()
