@@ -57,7 +57,7 @@ namespace Facepunch.Flexbox
         private readonly List<int> _pendingIds = new List<int>();
         private bool _currentState;
 
-        public void Start()
+        public void Awake()
         {
             SwitchState(false, false);
         }
