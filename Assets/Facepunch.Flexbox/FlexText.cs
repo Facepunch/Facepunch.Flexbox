@@ -107,11 +107,11 @@ namespace Facepunch.Flexbox
         {
             Profiler.BeginSample(nameof(IFlexNode.MeasureHorizontal), this);
 
-            // todo: use max width/height if we have any
-
-            var preferredSize = GetPreferredValues();
-            _preferredWidth = preferredSize.x;
-            _preferredHeight = preferredSize.y;
+            var maxWidth = MaxWidth.GetValueOrDefault(float.PositiveInfinity);
+            var maxHeight = MaxHeight.GetValueOrDefault(float.PositiveInfinity);
+            var preferredSize = GetPreferredValues(maxWidth, maxHeight);
+            _preferredWidth = Mathf.Max(preferredSize.x, MinWidth.GetValueOrDefault(0));
+            _preferredHeight = Mathf.Max(preferredSize.y, MinHeight.GetValueOrDefault(0));
 
             //Debug.Log($"text horizontal prefW={_preferredWidth} prefH={_preferredHeight}");
 
@@ -129,9 +129,10 @@ namespace Facepunch.Flexbox
             var rt = (RectTransform)transform;
             var size = rt.sizeDelta;
 
-            var preferredSize = GetPreferredValues(size.x, float.PositiveInfinity);
-            _preferredWidth = preferredSize.x;
-            _preferredHeight = preferredSize.y;
+            var maxHeight = MaxHeight.GetValueOrDefault(float.PositiveInfinity);
+            var preferredSize = GetPreferredValues(size.x, maxHeight);
+            _preferredWidth = Mathf.Max(preferredSize.x, MinWidth.GetValueOrDefault(0));
+            _preferredHeight = Mathf.Max(preferredSize.y, MinHeight.GetValueOrDefault(0));
 
             //Debug.Log($"text vertical w={size.x} prefW={_preferredWidth} prefH={_preferredHeight}");
 
