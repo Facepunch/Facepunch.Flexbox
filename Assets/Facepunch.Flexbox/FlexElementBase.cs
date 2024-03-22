@@ -213,8 +213,8 @@ namespace Facepunch.Flexbox
 
         void IFlexNode.GetPreferredSize(out float preferredWidth, out float preferredHeight)
         {
-            preferredWidth = OverridePreferredWidth.GetOrDefault(PrefWidth);
-            preferredHeight = OverridePreferredHeight.GetOrDefault(PrefHeight);
+            preferredWidth = Mathf.Clamp(OverridePreferredWidth.GetOrDefault(PrefWidth), MinWidth.GetValueOrDefault(0), MaxWidth.GetValueOrDefault(float.PositiveInfinity));
+            preferredHeight = Mathf.Clamp(OverridePreferredHeight.GetOrDefault(PrefHeight), MinHeight.GetValueOrDefault(0), MaxHeight.GetValueOrDefault(float.PositiveInfinity));
         }
         #endregion
 

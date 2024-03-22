@@ -129,7 +129,7 @@ namespace Facepunch.Flexbox
                 var toFloat = property.FindPropertyRelative("ToFloat");
                 if (ValueField(lineRect, toFloat, "To"))
                 {
-                    fromFloat.floatValue = FlexTransition.GetCurrentValueFloat(objectProp.objectReferenceValue, propertyType);
+                    toFloat.floatValue = FlexTransition.GetCurrentValueFloat(objectProp.objectReferenceValue, propertyType);
                 }
 
                 lineRect.y += EditorGUIUtility.singleLineHeight + LineSpacing;
