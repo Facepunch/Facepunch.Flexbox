@@ -18,7 +18,7 @@ namespace Facepunch.Flexbox
 
         [Tooltip("Enable this to use a fixed number of columns.")]
         public bool FixedColumnCount = false;
-        
+
         [Min(1), Tooltip("The number of columns to use when using a fixed number of columns.")]
         public int ColumnCount = 1;
 
@@ -27,9 +27,9 @@ namespace Facepunch.Flexbox
         public int ColumnMinWidth = 100;
 
         private int _calculatedColumnCount;
-        
+
         private ColumnParameters[] _columnParams = Array.Empty<ColumnParameters>();
-        
+
         private struct ColumnParameters
         {
             public float Height; // for measuring
@@ -40,33 +40,71 @@ namespace Facepunch.Flexbox
         {
             Profiler.BeginSample(nameof(MeasureHorizontalImpl), this);
 
-            // todo: if using a fixed column count then we could be more accurate here
-
             var mainAxisPreferredSize = 0f;
-            var first = true;
-            foreach (var child in Children)
+            if (FixedColumnCount && ColumnCount > 0)
             {
-                if (child.IsDirty)
+                var actualColumnCount = Mathf.Min(ColumnCount, Children.Count);
+                Span<float> columnWidths = stackalloc float[actualColumnCount];
+
+                var columnIdx = 0;
+                foreach (var child in Children)
                 {
-                    child.MeasureHorizontal();
+                    if (child.IsDirty)
+                    {
+                        child.MeasureHorizontal();
+                    }
+
+                    child.GetScale(out var childScaleX, out _);
+                    child.GetPreferredSize(out var childPreferredWidth, out _);
+
+                    columnWidths[columnIdx] = Mathf.Max(columnWidths[columnIdx], childPreferredWidth * childScaleX);
+
+                    columnIdx++;
+                    if (columnIdx >= actualColumnCount)
+                    {
+                        columnIdx = 0;
+                    }
                 }
 
-                child.GetScale(out var childScaleX, out _);
-                child.GetPreferredSize(out var childPreferredWidth, out _);
-                
-                var gap = first ? 0f : Gap;
-                mainAxisPreferredSize += (childPreferredWidth * childScaleX) + gap;
-
-                if (first)
+                var first = true;
+                for (var i = 0; i < actualColumnCount; i++)
                 {
-                    first = false;
+                    var gap = first ? 0f : Gap;
+                    mainAxisPreferredSize += columnWidths[i] + gap;
+
+                    if (first)
+                    {
+                        first = false;
+                    }
                 }
             }
-            
+            else
+            {
+                var first = true;
+                foreach (var child in Children)
+                {
+                    if (child.IsDirty)
+                    {
+                        child.MeasureHorizontal();
+                    }
+
+                    child.GetScale(out var childScaleX, out _);
+                    child.GetPreferredSize(out var childPreferredWidth, out _);
+
+                    var gap = first ? 0f : Gap;
+                    mainAxisPreferredSize += (childPreferredWidth * childScaleX) + gap;
+
+                    if (first)
+                    {
+                        first = false;
+                    }
+                }
+            }
+
             var basisClamp = Basis.HasValue && Basis.Unit == FlexUnit.Pixels ? Basis.Value : 0;
             var minClamp = MinWidth.HasValue && MinWidth.Unit == FlexUnit.Pixels ? MinWidth.Value : 0;
             var maxClamp = MaxWidth.HasValue && MaxWidth.Unit == FlexUnit.Pixels ? MaxWidth.Value : float.PositiveInfinity;
-            
+
             var padding = Padding.left + Padding.right;
             PrefWidth = Mathf.Clamp(mainAxisPreferredSize + padding, Mathf.Max(minClamp, basisClamp), maxClamp);
 
@@ -113,7 +151,7 @@ namespace Facepunch.Flexbox
         protected override void MeasureVerticalImpl()
         {
             Profiler.BeginSample(nameof(MeasureVerticalImpl), this);
-            
+
             EnsureColumnParamsSize();
 
             for (var i = 0; i < _calculatedColumnCount; i++)
@@ -132,10 +170,10 @@ namespace Facepunch.Flexbox
 
                 child.GetScale(out _, out var childScaleY);
                 child.GetPreferredSize(out _, out var childPreferredHeight);
-                
+
                 var gap = first ? 0f : Gap;
                 _columnParams[columnIdx].Height += (childPreferredHeight * childScaleY) + gap;
-                
+
                 columnIdx++;
                 if (columnIdx >= _calculatedColumnCount)
                 {
@@ -143,7 +181,7 @@ namespace Facepunch.Flexbox
                     first = false;
                 }
             }
-            
+
             var basisClamp = Basis.HasValue && Basis.Unit == FlexUnit.Pixels ? Basis.Value : 0;
             var minClamp = MinHeight.HasValue && MinHeight.Unit == FlexUnit.Pixels ? MinHeight.Value : 0;
             var maxClamp = MaxHeight.HasValue && MaxHeight.Unit == FlexUnit.Pixels ? MaxHeight.Value : float.PositiveInfinity;
@@ -157,7 +195,7 @@ namespace Facepunch.Flexbox
                     maxHeight = height;
                 }
             }
-            
+
             var padding = Padding.top + Padding.bottom;
             PrefHeight = Mathf.Clamp(maxHeight + padding, Mathf.Max(minClamp, basisClamp), maxClamp);
 
@@ -169,7 +207,7 @@ namespace Facepunch.Flexbox
             Profiler.BeginSample(nameof(LayoutVerticalImpl), this);
 
             var innerHeight = maxHeight - Padding.top - Padding.bottom;
-            
+
             EnsureColumnParamsSize();
 
             for (var i = 0; i < _calculatedColumnCount; i++)
