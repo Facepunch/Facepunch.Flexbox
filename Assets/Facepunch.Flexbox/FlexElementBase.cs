@@ -41,11 +41,11 @@ namespace Facepunch.Flexbox
         protected virtual bool IsReversed => false;
 
 #if UNITY_EDITOR
-        protected const DrivenTransformProperties ControlledProperties = DrivenTransformProperties.AnchoredPosition |
-                                                                         DrivenTransformProperties.SizeDelta |
-                                                                         DrivenTransformProperties.Anchors |
-                                                                         DrivenTransformProperties.Pivot |
-                                                                         DrivenTransformProperties.Rotation;
+        public const DrivenTransformProperties ControlledProperties = DrivenTransformProperties.AnchoredPosition | 
+                                                                      DrivenTransformProperties.SizeDelta | 
+                                                                      DrivenTransformProperties.Anchors | 
+                                                                      DrivenTransformProperties.Pivot | 
+                                                                      DrivenTransformProperties.Rotation;
         private DrivenRectTransformTracker _drivenTracker = new DrivenRectTransformTracker();
 #endif
 
