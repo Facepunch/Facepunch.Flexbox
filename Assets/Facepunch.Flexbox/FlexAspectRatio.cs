@@ -85,7 +85,8 @@ namespace Facepunch.Flexbox
             var rectTransform = (RectTransform)transform;
 
 #if UNITY_EDITOR
-            _drivenTracker.Add(this, rectTransform, DrivenTransformProperties.Rotation | DrivenTransformProperties.Pivot | DrivenTransformProperties.Anchors);
+            _drivenTracker.Clear();
+            _drivenTracker.Add(this, rectTransform, FlexElementBase.ControlledProperties);
 #endif
 
             rectTransform.localRotation = Quaternion.identity;

@@ -41,12 +41,12 @@ namespace Facepunch.Flexbox
         protected virtual bool IsReversed => false;
 
 #if UNITY_EDITOR
-        private const DrivenTransformProperties ControlledProperties = DrivenTransformProperties.AnchoredPosition |
-                                                                       DrivenTransformProperties.SizeDelta |
-                                                                       DrivenTransformProperties.Anchors |
-                                                                       DrivenTransformProperties.Pivot |
-                                                                       DrivenTransformProperties.Rotation;
-        protected DrivenRectTransformTracker DrivenTracker = new DrivenRectTransformTracker();
+        internal const DrivenTransformProperties ControlledProperties = DrivenTransformProperties.AnchoredPosition |
+                                                                        DrivenTransformProperties.SizeDelta |
+                                                                        DrivenTransformProperties.Anchors |
+                                                                        DrivenTransformProperties.Pivot |
+                                                                        DrivenTransformProperties.Rotation;
+        private DrivenRectTransformTracker _drivenTracker = new DrivenRectTransformTracker();
 #endif
 
         internal void PerformLayout()
@@ -70,10 +70,14 @@ namespace Facepunch.Flexbox
             IsDoingLayout = true;
             try
             {
+#if UNITY_EDITOR
+                _drivenTracker.Clear();
+#endif
+                
                 if (autoSizeX)
                 {
 #if UNITY_EDITOR
-                    DrivenTracker.Add(this, rectTransform, DrivenTransformProperties.SizeDeltaX);
+                    _drivenTracker.Add(this, rectTransform, DrivenTransformProperties.SizeDeltaX);
 #endif
 
                     //Debug.Log($"w={_prefWidth}");
@@ -83,7 +87,7 @@ namespace Facepunch.Flexbox
                 if (autoSizeY)
                 {
 #if UNITY_EDITOR
-                    DrivenTracker.Add(this, rectTransform, DrivenTransformProperties.SizeDeltaY);
+                    _drivenTracker.Add(this, rectTransform, DrivenTransformProperties.SizeDeltaY);
 #endif
 
                     //Debug.Log($"h={_prefHeight}");
@@ -141,6 +145,11 @@ namespace Facepunch.Flexbox
             {
                 var rectTransform = (RectTransform)transform;
                 
+#if UNITY_EDITOR
+                _drivenTracker.Clear();
+                _drivenTracker.Add(this, rectTransform, ControlledProperties);
+#endif
+                
                 rectTransform.localRotation = Quaternion.identity;
                 rectTransform.pivot = new Vector2(0, 1); // top left
                 rectTransform.anchorMin = new Vector2(0, 1); // top left
@@ -150,19 +159,10 @@ namespace Facepunch.Flexbox
 
         void IFlexNode.MeasureHorizontal()
         {
-#if UNITY_EDITOR
-            DrivenTracker.Clear();
-#endif
-
             Children.Clear();
             foreach (var child in new FlexChildEnumerable(this, IsReversed))
             {
                 Children.Add(child);
-
-#if UNITY_EDITOR
-                DrivenTracker.Add(this, child.Transform, ControlledProperties);
-#endif
-
                 child.SetupTransform();
             }
 
@@ -228,7 +228,7 @@ namespace Facepunch.Flexbox
             SetLayoutDirty(true);
 
 #if UNITY_EDITOR
-            DrivenTracker.Clear();
+            _drivenTracker.Clear();
 #endif
         }
 
