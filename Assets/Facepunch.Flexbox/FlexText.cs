@@ -111,8 +111,8 @@ namespace Facepunch.Flexbox
             var maxWidth = MaxWidth.GetValueOrDefault(float.PositiveInfinity);
             var maxHeight = MaxHeight.GetValueOrDefault(float.PositiveInfinity);
             var preferredSize = GetPreferredValues(maxWidth, maxHeight);
-            _preferredWidth = Mathf.Max(preferredSize.x, MinWidth.GetValueOrDefault(0));
-            _preferredHeight = Mathf.Max(preferredSize.y, MinHeight.GetValueOrDefault(0));
+            _preferredWidth = Mathf.Max(Mathf.Min(preferredSize.x, maxWidth), MinWidth.GetValueOrDefault(0));
+            _preferredHeight = Mathf.Max(Mathf.Min(preferredSize.y, maxHeight), MinHeight.GetValueOrDefault(0));
 
             //Debug.Log($"text horizontal prefW={_preferredWidth} prefH={_preferredHeight}");
 
@@ -130,10 +130,11 @@ namespace Facepunch.Flexbox
             var rt = (RectTransform)transform;
             var size = rt.sizeDelta;
 
+            var maxWidth = MaxWidth.GetValueOrDefault(float.PositiveInfinity);
             var maxHeight = MaxHeight.GetValueOrDefault(float.PositiveInfinity);
             var preferredSize = GetPreferredValues(size.x, maxHeight);
-            _preferredWidth = Mathf.Max(preferredSize.x, MinWidth.GetValueOrDefault(0));
-            _preferredHeight = Mathf.Max(preferredSize.y, MinHeight.GetValueOrDefault(0));
+            _preferredWidth = Mathf.Max(Mathf.Min(preferredSize.x, maxWidth), MinWidth.GetValueOrDefault(0));
+            _preferredHeight = Mathf.Max(Mathf.Min(preferredSize.y, maxHeight), MinHeight.GetValueOrDefault(0));
 
             //Debug.Log($"text vertical w={size.x} prefW={_preferredWidth} prefH={_preferredHeight}");
 
