@@ -56,15 +56,20 @@ namespace Facepunch.Flexbox
 
         private readonly List<int> _pendingIds = new List<int>();
         private bool _currentState;
+        private bool _hasSwitchedState;
 
         public void Awake()
         {
-            SwitchState(false, false);
+            if (!_hasSwitchedState)
+            {
+                SwitchState(false, false);
+            }
         }
 
         public void SwitchState(bool enabled, bool animate)
         {
             _currentState = enabled;
+            _hasSwitchedState = true;
 
             if (Transitions == null || Transitions.Length == 0)
             {
