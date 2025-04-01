@@ -123,7 +123,7 @@ namespace Facepunch.Flexbox
         {
             Profiler.BeginSample(nameof(IFlexNode.MeasureVertical), this);
 
-            var aspect = AspectRatio.x > 0 && AspectRatio.y > 1
+            var aspect = AspectRatio.x > 0 && AspectRatio.y > 0
                 ? AspectRatio.x / AspectRatio.y
                 : 1;
             var rt = (RectTransform)transform;
