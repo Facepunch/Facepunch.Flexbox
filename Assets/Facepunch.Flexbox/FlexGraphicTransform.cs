@@ -27,8 +27,8 @@ namespace Facepunch.Flexbox
         private static readonly List<Vector3> Vertices = new();
         private static readonly List<int> Indices = new();
         private static readonly List<Color32> Colors = new();
-        private static readonly List<Vector2> Uv0 = new();
-        private static readonly List<Vector2> Uv1 = new();
+        private static readonly List<Vector4> Uv0 = new();
+        private static readonly List<Vector4> Uv1 = new();
         private static readonly List<Vector3> Normals = new();
         private static readonly List<Vector4> Tangents = new();
 
@@ -122,7 +122,7 @@ namespace Facepunch.Flexbox
                     {
                         mesh.Clear();
                         mesh.vertices = info.vertices;
-                        mesh.uv = info.uvs0;
+                        mesh.SetUVs(0, info.uvs0);
                         mesh.uv2 = info.uvs2;
                         mesh.colors32 = info.colors32;
                         mesh.normals = info.normals;
@@ -189,6 +189,11 @@ namespace Facepunch.Flexbox
 
         public void ModifyMesh(VertexHelper vh)
         {
+            if (_rt == null)
+            {
+                _rt = GetComponent<RectTransform>(); 
+            }
+            
             var matrix = transformationMatrix;
             var vt = default(UIVertex);
             var count = vh.currentVertCount;

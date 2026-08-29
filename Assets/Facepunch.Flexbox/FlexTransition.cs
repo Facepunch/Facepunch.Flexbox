@@ -27,12 +27,15 @@ namespace Facepunch.Flexbox
             TextColor,
             CanvasAlpha,
             RotationZ,
+            ScaleXY,
 
             TransformTranslateX = 200,
             TransformTranslateY,
             TransformScaleX,
             TransformScaleY,
             TransformRotate,
+            TranslateX,
+            TranslateY,
         }
 
         [Serializable]
@@ -50,13 +53,16 @@ namespace Facepunch.Flexbox
             [Min(0)]
             public float Duration;
             public LeanTweenType Ease;
+            public AnimationCurve Curve;
         }
 
         public Definition[] Transitions;
+        [SerializeField] private bool _playOnAwake = false;
 
         private readonly List<int> _pendingIds = new List<int>();
         private bool _currentState;
         private bool _hasSwitchedState;
+        private Action _restoreStateCached;
 
         public void Awake()
         {
@@ -66,6 +72,23 @@ namespace Facepunch.Flexbox
             }
         }
 
+        public void OnEnable()
+        {
+            if (_playOnAwake)
+            {
+                SwitchState(true, true);
+            }
+        }
+
+        public void OnDisable()
+        {
+            if (_playOnAwake)
+            {
+                SwitchState(false, false);
+            }
+        }
+
+        [FlexEvent]
         public void SwitchState(bool enabled, bool animate)
         {
             _currentState = enabled;
@@ -93,9 +116,84 @@ namespace Facepunch.Flexbox
             }
         }
 
+        [FlexEvent]
         public void SwitchState(bool enabled) => SwitchState(enabled, true);
 
+        [FlexEvent]
         public void ToggleState() => SwitchState(!_currentState);
+        
+        [FlexEvent]
+        public void PlayOneOff()
+        {
+            _currentState = true;
+            _hasSwitchedState = true;
+
+            if (Transitions == null || Transitions.Length == 0)
+            {
+                return;
+            }
+
+            foreach (var id in _pendingIds)
+            {
+                LeanTween.cancel(id);
+            }
+
+            _pendingIds.Clear();
+
+            for (var i = 0; i < Transitions.Length; i++)
+            {
+                var tween = RunTransitionImpl(in Transitions[i], true);
+                if (tween != null)
+                {
+                    _pendingIds.Add(tween.uniqueId);
+                }
+            }
+        }
+
+        [FlexEvent]
+        public void PlayPop()
+        {
+            if (Transitions == null || Transitions.Length == 0)
+                return;
+
+            _hasSwitchedState = true;
+            _currentState = true;
+
+            foreach (var id in _pendingIds)
+            {
+                LeanTween.cancel(id);
+            }
+
+            _pendingIds.Clear();
+            float longest = 0f;
+            LTDescr longestTween = null;
+
+            for (int i = 0; i < Transitions.Length; i++)
+            {
+                var t = RunTransitionImpl(in Transitions[i], true);
+                if (t != null)
+                {
+                    _pendingIds.Add(t.uniqueId);
+                    if (Transitions[i].Duration > longest)
+                    {
+                        longest = Transitions[i].Duration;
+                        longestTween = t;
+                    }
+                }
+            }
+            
+            // Schedule the reverse transition after the longest animation
+            if (longestTween != null)
+            {
+                _restoreStateCached ??= RestoreState;
+                longestTween.setOnComplete(_restoreStateCached);
+            }
+        }
+
+        private void RestoreState()
+        {
+            SwitchState(false, true);
+        }
 
         private LTDescr RunTransitionImpl(in Definition transition, bool animate)
         {
@@ -115,7 +213,6 @@ namespace Facepunch.Flexbox
                     if (animate)
                     {
                         tween = LeanTween.scaleX(element.gameObject, targetValue, transition.Duration)
-                            .setEase(transition.Ease)
                             .setOnUpdate((float value, object obj) =>
                             {
                                 if (obj is FlexElement elem)
@@ -147,7 +244,6 @@ namespace Facepunch.Flexbox
                     if (animate)
                     {
                         tween = LeanTween.scaleY(element.gameObject, targetValue, transition.Duration)
-                            .setEase(transition.Ease)
                             .setOnUpdate((float value, object obj) =>
                             {
                                 var elem = (FlexElement)obj;
@@ -168,6 +264,38 @@ namespace Facepunch.Flexbox
                     break;
                 }
 
+                case TransitionProperty.ScaleXY:
+                {
+                    var element = transition.Object as FlexElement;
+                    if (element == null)
+                    {
+                        break;
+                    }
+
+                    var targetValue = _currentState ? transition.ToFloat : transition.FromFloat;
+                    if (animate)
+                    {
+                        tween = LeanTween.scale(element.gameObject, new Vector3(targetValue, targetValue, element.transform.localScale.z), transition.Duration)
+                            .setOnUpdate((Vector3 value, object obj) =>
+                            {
+                                if (obj is FlexElement elem)
+                                {
+                                    elem.SetLayoutDirty();
+                                }
+                            }, element);
+                    }
+                    else
+                    {
+                        var scale = element.transform.localScale;
+                        scale.x = targetValue;
+                        scale.y = targetValue;
+                        element.transform.localScale = scale;
+                        element.SetLayoutDirty();
+                    }
+
+                    break;
+                }
+                
                 case TransitionProperty.ImageColor:
                 {
                     var image = transition.Object as Image;
@@ -181,7 +309,6 @@ namespace Facepunch.Flexbox
                     if (animate)
                     {
                         tween = LeanTween.value(image.gameObject, startValue, targetValue, transition.Duration)
-                            .setEase(transition.Ease)
                             .setOnUpdateParam(image)
                             .setOnUpdateColor((Color value, object obj) =>
                             {
@@ -212,7 +339,6 @@ namespace Facepunch.Flexbox
                     if (animate)
                     {
                         tween = LeanTween.value(text.gameObject, startValue, targetValue, transition.Duration)
-                            .setEase(transition.Ease)
                             .setOnUpdateParam(text)
                             .setOnUpdateColor((Color value, object state) =>
                             {
@@ -262,12 +388,11 @@ namespace Facepunch.Flexbox
                     var targetValue = _currentState ? transition.ToFloat : transition.FromFloat;
                     if (animate)
                     {
-                        tween = LeanTween.rotateZ(transform.gameObject, targetValue, transition.Duration)
-                            .setEase(transition.Ease);
+                        tween = LeanTween.rotateZ(transform.gameObject, targetValue, transition.Duration);
                     }
                     else
                     {
-                        var angles = transform.localEulerAngles;
+                        var angles = transform.eulerAngles;
                         angles.z = targetValue;
                         transform.localEulerAngles = angles;
                     }
@@ -288,7 +413,6 @@ namespace Facepunch.Flexbox
                     if (animate)
                     {
                         tween = LeanTween.value(graphicTransform.gameObject, startValue, targetValue, transition.Duration)
-                            .setEase(transition.Ease)
                             .setOnUpdateParam(graphicTransform)
                             .setOnUpdateObject((float value, object state) =>
                             {
@@ -321,7 +445,6 @@ namespace Facepunch.Flexbox
                     if (animate)
                     {
                         tween = LeanTween.value(graphicTransform.gameObject, startValue, targetValue, transition.Duration)
-                            .setEase(transition.Ease)
                             .setOnUpdateParam(graphicTransform)
                             .setOnUpdateObject((float value, object state) =>
                             {
@@ -340,6 +463,78 @@ namespace Facepunch.Flexbox
 
                     break;
                 }
+                
+                case TransitionProperty.TranslateY:
+                {
+                    var tr = transition.Object as Transform;
+                    if (tr == null)
+                    {
+                        break;
+                    }
+
+                    float startValue = tr.localPosition.y;
+                    float targetValue = _currentState ? transition.ToFloat : transition.FromFloat;
+
+                    if (animate)
+                    {
+                        tween = LeanTween.value(tr.gameObject, startValue, targetValue, transition.Duration)
+                            .setEase(transition.Ease)
+                            .setOnUpdateParam(tr)
+                            .setOnUpdateObject((float value, object state) =>
+                            {
+                                if (state is Transform t)
+                                {
+                                    var pos = t.localPosition;
+                                    pos.y = value;
+                                    t.localPosition = pos;
+                                }
+                            });
+                    }
+                    else
+                    {
+                        var pos = tr.localPosition;
+                        pos.y = targetValue;
+                        tr.localPosition = pos;
+                    }
+
+                    break;
+                }
+                
+                case TransitionProperty.TranslateX:
+                {
+                    var tr = transition.Object as Transform;
+                    if (tr == null)
+                    {
+                        break;
+                    }
+
+                    float startValue = tr.localPosition.x;
+                    float targetValue = _currentState ? transition.ToFloat : transition.FromFloat;
+
+                    if (animate)
+                    {
+                        tween = LeanTween.value(tr.gameObject, startValue, targetValue, transition.Duration)
+                            .setEase(transition.Ease)
+                            .setOnUpdateParam(tr)
+                            .setOnUpdateObject((float value, object state) =>
+                            {
+                                if (state is Transform t)
+                                {
+                                    var pos = t.localPosition;
+                                    pos.x = value;
+                                    t.localPosition = pos;
+                                }
+                            });
+                    }
+                    else
+                    {
+                        var pos = tr.localPosition;
+                        pos.x = targetValue;
+                        tr.localPosition = pos;
+                    }
+
+                    break;
+                }
 
                 case TransitionProperty.TransformScaleX:
                 {
@@ -354,7 +549,6 @@ namespace Facepunch.Flexbox
                     if (animate)
                     {
                         tween = LeanTween.value(graphicTransform.gameObject, startValue, targetValue, transition.Duration)
-                            .setEase(transition.Ease)
                             .setOnUpdateParam(graphicTransform)
                             .setOnUpdateObject((float value, object state) =>
                             {
@@ -387,7 +581,6 @@ namespace Facepunch.Flexbox
                     if (animate)
                     {
                         tween = LeanTween.value(graphicTransform.gameObject, startValue, targetValue, transition.Duration)
-                            .setEase(transition.Ease)
                             .setOnUpdateParam(graphicTransform)
                             .setOnUpdateObject((float value, object state) =>
                             {
@@ -420,7 +613,6 @@ namespace Facepunch.Flexbox
                     if (animate)
                     {
                         tween = LeanTween.value(graphicTransform.gameObject, startValue, targetValue, transition.Duration)
-                            .setEase(transition.Ease)
                             .setOnUpdateParam(graphicTransform)
                             .setOnUpdateObject((float value, object state) =>
                             {
@@ -453,7 +645,6 @@ namespace Facepunch.Flexbox
                     if (animate)
                     {
                         tween = LeanTween.value(element.gameObject, Property(element, property), targetValue, transition.Duration)
-                            .setEase(transition.Ease)
                             .setOnUpdate((float newValue, object _) =>
                             {
                                 // todo: remove GC using with pooling?
@@ -474,6 +665,18 @@ namespace Facepunch.Flexbox
                 }
             }
 
+            if (tween != null)
+            {
+                if (transition.Ease == LeanTweenType.animationCurve)
+                {
+                    tween.setEase(transition.Curve);
+                }
+                else
+                {
+                    tween.setEase(transition.Ease);
+                } 
+            }
+            
             return tween;
         }
 
@@ -504,6 +707,20 @@ namespace Facepunch.Flexbox
             }
         }
 
+        public float GetTransitionTime()
+        {
+            float longestTransition = 0;
+            foreach (var transition in Transitions)
+            {
+                if (transition.Duration > longestTransition)
+                {
+                    longestTransition = transition.Duration;
+                }
+            }
+
+            return longestTransition;
+        }
+
 #if UNITY_EDITOR
         public static float GetCurrentValueFloat(Object obj, TransitionProperty property)
         {
@@ -530,9 +747,8 @@ namespace Facepunch.Flexbox
                 case TransitionProperty.RotationZ:
                 {
                     var transform = obj as Transform;
-                    return transform != null ? transform.localEulerAngles.z : 0;
+                    return transform != null ? transform.eulerAngles.z : 0;
                 }
-
                 case TransitionProperty.ImageColor:
                 case TransitionProperty.TextColor:
                     return 0f;

@@ -29,7 +29,12 @@ namespace Facepunch.Flexbox
                 var length = _transitions.serializedProperty.arraySize;
                 if (length == 0) return EditorGUIUtility.singleLineHeight;
 
-                var height = EditorGUIUtility.singleLineHeight * TransitionFieldCount + (TransitionFieldCount - 1) * LineSpacing;
+                var element = _transitions.serializedProperty.GetArrayElementAtIndex(index);
+                var ease = element.FindPropertyRelative("Ease");
+                bool hasCurve = (LeanTweenType)ease.intValue == LeanTweenType.animationCurve;
+
+                var fieldCount = TransitionFieldCount + (hasCurve ? 1 : 0);
+                var height = EditorGUIUtility.singleLineHeight * fieldCount + (fieldCount - 1) * LineSpacing;
                 return index < length - 1 ? height + EditorGUIUtility.singleLineHeight : height;
             };
             _transitions.onAddCallback = list =>
@@ -74,7 +79,9 @@ namespace Facepunch.Flexbox
                 label = new GUIContent("CanvasGroup");
                 type = typeof(CanvasGroup);
             }
-            else if (propertyType == FlexTransition.TransitionProperty.RotationZ)
+            else if (propertyType == FlexTransition.TransitionProperty.RotationZ ||
+                     propertyType == FlexTransition.TransitionProperty.TranslateX ||
+                     propertyType == FlexTransition.TransitionProperty.TranslateY)
             {
                 label = new GUIContent("Transform");
                 type = typeof(Transform);
@@ -148,11 +155,22 @@ namespace Facepunch.Flexbox
             var ease = property.FindPropertyRelative("Ease");
             EditorGUI.PropertyField(lineRect, ease);
             lineRect.y += EditorGUIUtility.singleLineHeight + LineSpacing;
+            
+            if ((LeanTweenType)ease.intValue == LeanTweenType.animationCurve)
+            {
+                var curve = property.FindPropertyRelative("Curve");
+                EditorGUI.PropertyField(lineRect, curve, new GUIContent("Curve"));
+                lineRect.y += EditorGUIUtility.singleLineHeight + LineSpacing;
+            }
         }
 
         public override void OnInspectorGUI()
         {
             serializedObject.Update();
+            
+            var playOnAwakeProp = serializedObject.FindProperty("_playOnAwake");
+            EditorGUILayout.PropertyField(playOnAwakeProp);
+           
             _transitions.DoLayoutList();
             serializedObject.ApplyModifiedProperties();
         }

@@ -13,8 +13,11 @@ namespace Facepunch.Flexbox
         [Tooltip("Spacing to add from this elements borders to where children are laid out.")]
         public FlexPadding Padding;
 
-        [Min(0), Tooltip("Spacing to add between each child flex item.")]
-        public float Gap = 0;
+        [Min(0), Tooltip("Horizontal spacing between columns.")]
+        public float HorizontalSpacing = 0;
+
+        [Min(0), Tooltip("Vertical spacing between rows.")]
+        public float VerticalSpacing = 0;
 
         [Tooltip("Enable this to use a fixed number of columns.")]
         public bool FixedColumnCount = false;
@@ -26,7 +29,13 @@ namespace Facepunch.Flexbox
         [FormerlySerializedAs("ColumnWidth")]
         public int ColumnMinWidth = 100;
 
+        [Tooltip("Fill columns vertically (top-to-bottom, then next column) instead of horizontally (left-to-right, then next row).")]
+        public bool VerticalFill = false;
+
         private int _calculatedColumnCount;
+        private int _calculatedRowCount;
+
+        public int CalculatedColumnCount => _calculatedColumnCount;
 
         private ColumnParameters[] _columnParams = Array.Empty<ColumnParameters>();
 
@@ -44,9 +53,13 @@ namespace Facepunch.Flexbox
             if (FixedColumnCount && ColumnCount > 0)
             {
                 var actualColumnCount = Mathf.Min(ColumnCount, Children.Count);
+                var rowCount = VerticalFill
+                    ? Mathf.Max((int)Mathf.Ceil((float)Children.Count / actualColumnCount), 1)
+                    : 0;
                 Span<float> columnWidths = stackalloc float[actualColumnCount];
 
                 var columnIdx = 0;
+                var childIdx = 0;
                 foreach (var child in Children)
                 {
                     if (child.IsDirty)
@@ -57,19 +70,21 @@ namespace Facepunch.Flexbox
                     child.GetScale(out var childScaleX, out _);
                     child.GetPreferredSize(out var childPreferredWidth, out _);
 
-                    columnWidths[columnIdx] = Mathf.Max(columnWidths[columnIdx], childPreferredWidth * childScaleX);
+                    var colIdx = VerticalFill ? childIdx / rowCount : columnIdx;
+                    columnWidths[colIdx] = Mathf.Max(columnWidths[colIdx], childPreferredWidth * childScaleX);
 
                     columnIdx++;
                     if (columnIdx >= actualColumnCount)
                     {
                         columnIdx = 0;
                     }
+                    childIdx++;
                 }
 
                 var first = true;
                 for (var i = 0; i < actualColumnCount; i++)
                 {
-                    var gap = first ? 0f : Gap;
+                    var gap = first ? 0f : HorizontalSpacing;
                     mainAxisPreferredSize += columnWidths[i] + gap;
 
                     if (first)
@@ -91,7 +106,7 @@ namespace Facepunch.Flexbox
                     child.GetScale(out var childScaleX, out _);
                     child.GetPreferredSize(out var childPreferredWidth, out _);
 
-                    var gap = first ? 0f : Gap;
+                    var gap = first ? 0f : HorizontalSpacing;
                     mainAxisPreferredSize += (childPreferredWidth * childScaleX) + gap;
 
                     if (first)
@@ -119,14 +134,37 @@ namespace Facepunch.Flexbox
 
             _calculatedColumnCount = FixedColumnCount
                 ? ColumnCount
-                : Mathf.Max(Mathf.FloorToInt((innerWidth + Gap) / (ColumnMinWidth + Gap)), 1);
+                : Mathf.Max(Mathf.FloorToInt((innerWidth + HorizontalSpacing) / (ColumnMinWidth + HorizontalSpacing)), 1);
+
+            if (VerticalFill)
+            {
+                _calculatedRowCount = Children.Count > 0
+                    ? Mathf.Max((int)Mathf.Ceil((float)Children.Count / _calculatedColumnCount), 1)
+                    : 1;
+            }
 
             var gapCount = Mathf.Max(_calculatedColumnCount - 1, 0);
-            var columnWidth = (innerWidth - (Gap * gapCount)) / _calculatedColumnCount;
+            var columnWidth = (innerWidth - (HorizontalSpacing * gapCount)) / _calculatedColumnCount;
 
             var columnIdx = 0;
+            var childIdx = 0;
+            var horizontalOffset = 0f;
+            var lastColumnIdx = -1;
             foreach (var child in Children)
             {
+                var colIdx = VerticalFill ? childIdx / _calculatedRowCount : columnIdx;
+
+                if (!VerticalFill)
+                {
+                    // reset horizontal offset when starting a new row
+                    if (columnIdx <= lastColumnIdx)
+                    {
+                        horizontalOffset = 0f;
+                    }
+                    lastColumnIdx = columnIdx;
+                }
+
+                child.GetScale(out var childScaleX, out _);
                 var childMinWidth = CalculateLengthValue(child.MinWidth, innerWidth, 0);
                 var childMaxWidth = CalculateLengthValue(child.MaxWidth, innerWidth, float.PositiveInfinity);
                 var childWidth = Mathf.Clamp(columnWidth, childMinWidth, childMaxWidth);
@@ -139,10 +177,19 @@ namespace Facepunch.Flexbox
                 childRt.sizeDelta = new Vector2(childWidth, childSizeDelta.y);
 
                 var childAnchoredPos = childRt.anchoredPosition;
-                childRt.anchoredPosition = new Vector2(Padding.left + (columnWidth + Gap) * columnIdx, childAnchoredPos.y);
+                var xPos = VerticalFill
+                    ? Padding.left + colIdx * (columnWidth + HorizontalSpacing)
+                    : Padding.left + horizontalOffset;
+                childRt.anchoredPosition = new Vector2(xPos, childAnchoredPos.y);
+
+                if (!VerticalFill)
+                {
+                    horizontalOffset += (childWidth * childScaleX) + HorizontalSpacing;
+                }
 
                 columnIdx++;
                 if (columnIdx >= _calculatedColumnCount) columnIdx = 0;
+                childIdx++;
             }
 
             Profiler.EndSample();
@@ -159,8 +206,11 @@ namespace Facepunch.Flexbox
                 _columnParams[i].Height = 0;
             }
 
+            Span<bool> columnFirst = stackalloc bool[_calculatedColumnCount];
+            for (var i = 0; i < _calculatedColumnCount; i++) columnFirst[i] = true;
+
             var columnIdx = 0;
-            var first = true;
+            var childIdx = 0;
             foreach (var child in Children)
             {
                 if (child.IsDirty)
@@ -171,15 +221,17 @@ namespace Facepunch.Flexbox
                 child.GetScale(out _, out var childScaleY);
                 child.GetPreferredSize(out _, out var childPreferredHeight);
 
-                var gap = first ? 0f : Gap;
-                _columnParams[columnIdx].Height += (childPreferredHeight * childScaleY) + gap;
+                var colIdx = VerticalFill ? childIdx / _calculatedRowCount : columnIdx;
+                var gap = columnFirst[colIdx] ? 0f : VerticalSpacing;
+                _columnParams[colIdx].Height += (childPreferredHeight * childScaleY) + gap;
+                columnFirst[colIdx] = false;
 
                 columnIdx++;
                 if (columnIdx >= _calculatedColumnCount)
                 {
                     columnIdx = 0;
-                    first = false;
                 }
+                childIdx++;
             }
 
             var basisClamp = Basis.HasValue && Basis.Unit == FlexUnit.Pixels ? Basis.Value : 0;
@@ -216,10 +268,13 @@ namespace Facepunch.Flexbox
             }
 
             var columnIdx = 0;
+            var childIdx = 0;
             foreach (var child in Children)
             {
-                ref var columnParams = ref _columnParams[columnIdx];
+                var colIdx = VerticalFill ? childIdx / _calculatedRowCount : columnIdx;
+                ref var columnParams = ref _columnParams[colIdx];
 
+                child.GetScale(out _, out var childScaleY);
                 var childMinHeight = CalculateLengthValue(child.MinHeight, innerHeight, 0);
                 var childMaxHeight = CalculateLengthValue(child.MaxHeight, innerHeight, float.PositiveInfinity);
                 child.GetPreferredSize(out _, out var childPrefHeight);
@@ -235,10 +290,11 @@ namespace Facepunch.Flexbox
                 var childAnchoredPos = childRt.anchoredPosition;
                 childRt.anchoredPosition = new Vector2(childAnchoredPos.x, -(Padding.top + columnParams.Offset));
 
-                columnParams.Offset += childHeight + Gap;
+                columnParams.Offset += (childHeight * childScaleY) + VerticalSpacing;
 
                 columnIdx++;
                 if (columnIdx >= _calculatedColumnCount) columnIdx = 0;
+                childIdx++;
             }
 
             Profiler.EndSample();

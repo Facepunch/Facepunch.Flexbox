@@ -41,7 +41,7 @@ namespace Facepunch.Flexbox
         protected virtual bool IsReversed => false;
 
 #if UNITY_EDITOR
-        public const DrivenTransformProperties ControlledProperties = DrivenTransformProperties.AnchoredPosition | 
+        public const DrivenTransformProperties ControlledProperties = DrivenTransformProperties.AnchoredPosition |
                                                                       DrivenTransformProperties.SizeDelta | 
                                                                       DrivenTransformProperties.Anchors | 
                                                                       DrivenTransformProperties.Pivot | 

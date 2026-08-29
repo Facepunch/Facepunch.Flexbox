@@ -44,9 +44,25 @@ namespace Facepunch.Flexbox
         {
             FlushQueue();
         }
+        
+        private static bool IsServerEnvironment()
+        {
+            #if SERVER && !CLIENT
+                return true;
+            #else
+                return false;
+            #endif
+        }
+
 
         public static void EnqueueLayout(FlexElementBase element)
         {
+            // Don't allow flex to run for servers
+            if(IsServerEnvironment())
+            {
+                return;
+            }
+            
             if (element == null)
             {
                 return;
@@ -92,7 +108,7 @@ namespace Facepunch.Flexbox
             }
         }
 
-        internal static void LayoutImmediate(FlexElementBase element)
+        public static void LayoutImmediate(FlexElementBase element)
         {
             if (element == null || !element.IsAbsolute)
             {

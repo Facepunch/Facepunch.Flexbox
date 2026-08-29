@@ -24,7 +24,19 @@ namespace Facepunch.Flexbox
 
             if (!hasValue.hasMultipleDifferentValues && hasValue.boolValue)
             {
-                EditorGUI.PropertyField(valueRect, value, GUIContent.none);
+                EditorGUI.BeginChangeCheck();
+
+                // massive hack: temporarily shrink labelWidth so the blank label takes less space
+                // we need a FloatField to support the value scrubbing 
+                float oldWidth = EditorGUIUtility.labelWidth;
+                EditorGUIUtility.labelWidth = 10f;
+                float newVal = EditorGUI.FloatField(valueRect, new GUIContent(" "), value.floatValue);
+                EditorGUIUtility.labelWidth = oldWidth;
+
+                if (EditorGUI.EndChangeCheck())
+                {
+                    value.floatValue = newVal;
+                }
             }
 
             EditorGUI.EndProperty();

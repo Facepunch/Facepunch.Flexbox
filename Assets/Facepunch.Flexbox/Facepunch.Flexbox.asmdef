@@ -2,6 +2,7 @@
     "name": "Facepunch.Flexbox",
     "references": [
         "Unity.TextMeshPro",
+        "UnityEditor.UI",
         "LeanTween"
     ],
     "includePlatforms": [],

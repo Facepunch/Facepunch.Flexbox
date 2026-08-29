@@ -9,8 +9,10 @@ namespace Facepunch.Flexbox
         private SerializedProperty _fixedColumnCount;
         private SerializedProperty _columnCount;
         private SerializedProperty _columnMinWidth;
+        private SerializedProperty _verticalFill;
         private SerializedProperty _padding;
-        private SerializedProperty _gap;
+        private SerializedProperty _horizontalSpacing;
+        private SerializedProperty _verticalSpacing;
 
         public override void OnEnable()
         {
@@ -19,8 +21,10 @@ namespace Facepunch.Flexbox
             _fixedColumnCount = serializedObject.FindProperty("FixedColumnCount");
             _columnCount = serializedObject.FindProperty("ColumnCount");
             _columnMinWidth = serializedObject.FindProperty("ColumnMinWidth");
+            _verticalFill = serializedObject.FindProperty("VerticalFill");
             _padding = serializedObject.FindProperty("Padding");
-            _gap = serializedObject.FindProperty("Gap");
+            _horizontalSpacing = serializedObject.FindProperty("HorizontalSpacing");
+            _verticalSpacing = serializedObject.FindProperty("VerticalSpacing");
         }
 
         protected override void LayoutSection()
@@ -38,8 +42,10 @@ namespace Facepunch.Flexbox
                 }
             }
 
+            EditorGUILayout.PropertyField(_verticalFill);
             EditorGUILayout.PropertyField(_padding);
-            EditorGUILayout.PropertyField(_gap);
+            EditorGUILayout.PropertyField(_horizontalSpacing);
+            EditorGUILayout.PropertyField(_verticalSpacing);
         }
     }
 }

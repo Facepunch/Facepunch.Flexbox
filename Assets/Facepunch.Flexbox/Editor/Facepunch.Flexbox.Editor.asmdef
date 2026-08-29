@@ -4,6 +4,7 @@
         "Facepunch.Flexbox",
         "Unity.TextMeshPro",
         "Unity.TextMeshPro.Editor",
+        "UnityEditor.UI",
         "LeanTween"
     ],
     "includePlatforms": [
